@@ -3,23 +3,62 @@
 
 @theme {
   --font-sans: "Inter", "Helvetica Neue", Arial, sans-serif;
-  --font-serif: "EB Garamond", Garamond, Georgia, serif;
+  --font-serif: "Inter", "Helvetica Neue", Arial, sans-serif;
   --font-mono: "Space Mono", SFMono-Regular, Consolas, monospace;
 
   /* Playita palette: twilight indigo, muted teal, burnt peach and warm creams. */
-  --color-burgundy: #3D405B;
-  --color-sec-red: #81B29A;
-  --color-act-red: #E07A5F;
-  --color-accent-soft: #F2CC8F;
-  --color-eggshell: #F4F1DE;
-  --color-surface: #FFFCF2;
-  --color-line: #E6D5AB;
+  --color-burgundy: #003049;
+  --color-sec-red: #669BBC;
+  --color-act-red: #C1121F;
+  --color-accent-soft: #669BBC;
+  --color-eggshell: #FDF0D5;
+  --color-surface: #FDF0D5;
+  --color-line: #669BBC;
 }
+
+@layer base {
+  h1, h2, h3, h4 { font-weight: 800; }
+  input, select, textarea {
+    background: #fff !important;
+    border: 1px solid #669BBC !important;
+    color: #003049;
+    font-size: 16px !important;
+    border-radius: 8px !important;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: #003049 !important;
+    outline: 2px solid #003049;
+    outline-offset: 2px;
+  }
+  button { border-radius: 8px; min-height: 44px; }
+}
+
+/* Shared POS surfaces and action hierarchy. */
+nav { background: #003049 !important; color: #fff !important; }
+nav span { color: inherit !important; }
+button[class*="bg-[#003049]"], button.bg-burgundy {
+  background-color: #C1121F;
+  color: #fff;
+}
+button[class*="bg-[#003049]"]:hover, button.bg-burgundy:hover {
+  background-color: #780000;
+}
+button[class*="bg-[#FDF0D5]"] {
+  background: transparent;
+  border: 1px solid #669BBC;
+  color: #003049;
+}
+button[class*="bg-[#FDF0D5]"]:hover { background: #669BBC; }
+[class*="border-[#669BBC]"] { border-color: #669BBC55; }
+.font-serif { font-family: var(--font-sans); }
+div[class*="px-3 py-2 rounded-lg"]:nth-child(even),
+div[class*="px-3 py-1.5 rounded-xl"]:nth-child(even) { background: #fff; }
+button, h1, h2, h3, h4 { letter-spacing: 0 !important; }
 
 /* Custom fade scrollbars and elegant UI tweaks */
 body {
-  background-color: #F4F1DE;
-  color: #3D405B;
+  background-color: #FDF0D5;
+  color: #003049;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

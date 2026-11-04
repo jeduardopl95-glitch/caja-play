@@ -14,15 +14,15 @@ export function generateCortePDF(data: CorteCajaData, results: CorteCajaResult) 
   });
 
   // Playita palette, kept in sync with the application theme.
-  const darkNavy = [61, 64, 91];       // #3D405B Twilight Indigo
-  const oliveGreen = [129, 178, 154];  // #81B29A Muted Teal
-  const coolGray = [93, 98, 123];      // Muted indigo for text labels
-  const darkTextColor = [61, 64, 91];  // Twilight Indigo for text readability
-  const lightGrayBg = [255, 252, 242]; // #FFFCF2 Warm surface
-  const borderGray = [230, 213, 171];  // #E6D5AB Warm line separator
+  const darkNavy = [0, 48, 73];       // #3D405B Twilight Indigo
+  const oliveGreen = [0, 48, 73];  // #81B29A Muted Teal
+  const coolGray = [0, 48, 73];      // Muted indigo for text labels
+  const darkTextColor = [0, 48, 73];  // Twilight Indigo for text readability
+  const lightGrayBg = [255, 255, 255]; // #FFFCF2 Warm surface
+  const borderGray = [102, 155, 188];  // #E6D5AB Warm line separator
   
   // Specific restricted indicators
-  const accentRed = [224, 122, 95];    // #E07A5F Burnt Peach for differences
+  const accentRed = [193, 18, 31];    // #E07A5F Burnt Peach for differences
   const accentGreen = [16, 124, 65];   // Strictly for success / exact / cards squared
 
   let y = 18;
@@ -59,7 +59,7 @@ export function generateCortePDF(data: CorteCajaData, results: CorteCajaResult) 
   
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
-  doc.setTextColor(242, 204, 143);
+  doc.setTextColor(255, 255, 255);
   doc.text("REPORTE OFICIAL DE CIERRE & ARQUEO DE CAJA", 26, y + 16);
 
   // Date and branch inside the dark blue block (right-aligned)
