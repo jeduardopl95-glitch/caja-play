@@ -1,0 +1,6 @@
+{
+  "name": "Caja Play",
+  "description": "Herramientas minimalistas para cajeros: Cobro sin luz y Corte de caja.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

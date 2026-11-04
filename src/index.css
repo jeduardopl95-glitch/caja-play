@@ -1,0 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..700;1,400..700&family=Inter:ital,wght@0,100..900;1,100..900&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "EB Garamond", Garamond, Georgia, serif;
+  --font-mono: "Space Mono", SFMono-Regular, Consolas, monospace;
+
+  /* Playita palette: twilight indigo, muted teal, burnt peach and warm creams. */
+  --color-burgundy: #3D405B;
+  --color-sec-red: #81B29A;
+  --color-act-red: #E07A5F;
+  --color-accent-soft: #F2CC8F;
+  --color-eggshell: #F4F1DE;
+  --color-surface: #FFFCF2;
+  --color-line: #E6D5AB;
+}
+
+/* Custom fade scrollbars and elegant UI tweaks */
+body {
+  background-color: #F4F1DE;
+  color: #3D405B;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Hide scrollbars for full PWA layout feel while keeping scroll active */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
