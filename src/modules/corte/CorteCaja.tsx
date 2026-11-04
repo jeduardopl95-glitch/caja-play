@@ -6,7 +6,7 @@ import {
   Coins, CheckCircle, FileText, Send, AlertCircle, Sparkles, RefreshCw, XCircle
 } from "lucide-react";
 import { CorteCajaData, CorteCajaResult, TerminalEntry, TicketConsumo, AjusteTurno, ApartadoEfectivo } from "../../types";
-import { generateCortePDF, generateCorteTextSummary } from "../../utils/pdf";
+import { generateCortePDF } from "../../utils/pdf";
 
 interface CorteCajaProps {
   onBack: () => void;
@@ -16,15 +16,14 @@ const WIZARD_STEPS = [
   { step: 1, label: "Información", desc: "Datos del corte y sucursal" },
   { step: 2, label: "Tarjetas", desc: "Validación de tickets y terminales" },
   { step: 3, label: "Datos Efectivo", desc: "Ventas, gastos y ajustes" },
-  { step: 4, label: "Conteo Físico", desc: "Arqueo, dólares y balance" }
+  { step: 4, label: "Conteo Físico", desc: "Arqueo, dólares y apartados" },
+  { step: 5, label: "Resumen", desc: "Conciliación y envío PDF" }
 ];
 
 export default function CorteCaja({ onBack }: CorteCajaProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
-  const [whatsAppNumber, setWhatsAppNumber] = useState(() => {
-    return localStorage.getItem("cajaplay_wa_num") || "";
-  });
+  const [shareError, setShareError] = useState("");
 
   // Load or Initialize general data supporting ajustesTurno
   const [data, setData] = useState<CorteCajaData>(() => {
@@ -69,10 +68,12 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
             20.1: 0, 10: 0, 5: 0, 2: 0, 1: 0, 0.5: 0
           },
           dolaresConteo: parsed.dolaresConteo || 0,
+          modoMonedas: parsed.modoMonedas === "total" ? "total" : "desglose",
+          totalMonedasManual: parsed.totalMonedasManual || 0,
           tipoCambioUSD: parsed.tipoCambioUSD || 15,
           apartadosEfectivo: legacyApartados,
-          fondoSiguienteTurno: parsed.fondoSiguienteTurno || 0,
-          fondoMotivo: parsed.fondoMotivo || ""
+          fondoSiguienteTurno: 0,
+          fondoMotivo: ""
         };
       } catch (e) {
         // Fallback below on parse error
@@ -97,6 +98,8 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
         20.1: 0, 10: 0, 5: 0, 2: 0, 1: 0, 0.5: 0
       },
       dolaresConteo: 0,
+      modoMonedas: "desglose",
+      totalMonedasManual: 0,
       tipoCambioUSD: 15,
       apartadosEfectivo: [],
       fondoSiguienteTurno: 0,
@@ -114,12 +117,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
     setLastSavedAt(Date.now());
   }, [data]);
 
-  // Persist WhatsApp default number
-  useEffect(() => {
-    if (whatsAppNumber) {
-      localStorage.setItem("cajaplay_wa_num", whatsAppNumber);
-    }
-  }, [whatsAppNumber]);
+
 
   // Formatter helper for MXN currency
   const formatMXN = (val: number): string => {
@@ -174,9 +172,11 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
       subtotalMonedas += actualVal * count;
     });
 
+    if (data.modoMonedas === "total") subtotalMonedas = data.totalMonedasManual || 0;
+
     const subtotalDolares = (data.dolaresConteo || 0) * (data.tipoCambioUSD || 15);
     const totalApartados = (data.apartadosEfectivo || []).reduce((sum, apartado) => sum + apartado.amount, 0);
-    const fondoSiguienteTurno = totalApartados || data.fondoSiguienteTurno || 0;
+    const fondoSiguienteTurno = data.apartadosEfectivo !== undefined ? totalApartados : data.fondoSiguienteTurno || 0;
     const efectivoContado = subtotalBilletes + subtotalMonedas + subtotalDolares + fondoSiguienteTurno;
     const efectivoEntregado = efectivoContado - fondoSiguienteTurno;
 
@@ -374,28 +374,24 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
     }));
   };
 
-  // Export handlers
-  const handleDownloadPDF = () => {
-    const res = generateCortePDF(data, results);
-    res.doc.save(`Corte_${data.sucursal ? data.sucursal.replace(/\s+/g, "_") : "sucursal"}_${data.fecha}.pdf`);
-  };
-
-  const handleShareWhatsApp = () => {
-    const summary = generateCorteTextSummary(data, results);
-    const encoded = encodeURIComponent(summary);
-    const cleanNum = whatsAppNumber.replace(/\D/g, "");
-    if (cleanNum) {
-      window.open(`https://api.whatsapp.com/send?phone=${cleanNum}&text=${encoded}`, "_blank");
-    } else {
-      window.open(`https://api.whatsapp.com/send?text=${encoded}`, "_blank");
+  const handleSendPDF = async () => {
+    setShareError("");
+    if (!navigator.share || !navigator.canShare) {
+      setShareError("Este navegador no permite compartir archivos PDF. Abre la aplicación en un navegador compatible con compartir archivos, como Safari en iPhone o Chrome en Android.");
+      return;
     }
-  };
-
-  const handleCopySummary = () => {
-    const summary = generateCorteTextSummary(data, results);
-    navigator.clipboard.writeText(summary)
-      .then(() => alert("¡Resumen de corte copiado al portapapeles con éxito!"))
-      .catch(() => alert("Error al copiar al portapapeles."));
+    try {
+      const { blob } = generateCortePDF(data, results);
+      const file = new File([blob], `Corte_${data.sucursal.replace(/[^a-zA-Z0-9_-]/g, "_")}_${data.fecha}.pdf`, { type: "application/pdf" });
+      if (!navigator.canShare({ files: [file] })) {
+        setShareError("Este navegador no permite compartir este PDF. No se ha descargado ningún archivo.");
+        return;
+      }
+      await navigator.share({ files: [file], title: "Corte de Caja - " + data.sucursal });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      setShareError("No se pudo compartir el PDF. Intenta nuevamente. No se ha descargado ningún archivo.");
+    }
   };
 
   const handleResetWizard = () => {
@@ -419,6 +415,8 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
           20.1: 0, 10: 0, 5: 0, 2: 0, 1: 0, 0.5: 0
         },
         dolaresConteo: 0,
+      modoMonedas: "desglose",
+      totalMonedasManual: 0,
         tipoCambioUSD: 15,
         apartadosEfectivo: [],
         fondoSiguienteTurno: 0,
@@ -442,6 +440,36 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
     }
     setCurrentStep(stepNum);
   };
+
+  const previewSections: { title: string; rows: [string, string][] }[] = [];
+  const moneyRows = (rows: [string, number][]): [string, string][] =>
+    rows.filter(([, amount]) => amount !== 0).map(([label, amount]) => [label, formatMXN(amount)]);
+  previewSections.push({ title: "Información del corte", rows: [
+    ["Fecha", data.fecha], ["Sucursal", data.sucursal], ...(data.cajeroName ? [["Cajero", data.cajeroName] as [string, string]] : [])
+  ] });
+  const cardRows = moneyRows([
+    ["Ticket mañana", data.tarjetaManana], ["Ticket tarde", data.tarjetaTarde],
+    ["Santander", data.terminalSantander], ...data.otrasTerminales.map(t => [t.name, t.amount] as [string, number])
+  ]);
+  if (cardRows.length) previewSections.push({ title: "Tarjetas", rows: [
+    ...cardRows, ["Total tickets", formatMXN(results.tarjetasTicket)], ["Total terminales", formatMXN(results.totalTerminales)],
+    ["Diferencia (terminales - tickets)", formatMXN(results.diferenciaTarjetas)],
+    ...(data.tarjetaObservaciones ? [["Observaciones", data.tarjetaObservaciones] as [string, string]] : [])
+  ] });
+  const cashRows = moneyRows([
+    ["Ventas en efectivo", data.ventasEfectivoManual], ["Entradas", data.entradasEfectivo], ["Salidas", -data.salidasEfectivo],
+    ...data.ticketsConsumo.map(t => ["Consumo: " + t.description, -t.amount] as [string, number]),
+    ...data.ajustesTurno.map(t => ["Ajuste: " + t.description, t.type === "sumar" ? t.amount : -t.amount] as [string, number])
+  ]);
+  if (cashRows.length) previewSections.push({ title: "Flujo de efectivo", rows: [...cashRows, ["Efectivo esperado", formatMXN(results.efectivoEsperado)]] });
+  const physicalRows = moneyRows([
+    ...[1000,500,200,100,50,20].map(d => [`Billetes de ${d} (${data.efectivoConteo[d] || 0} piezas)`, d * (data.efectivoConteo[d] || 0)] as [string, number]),
+    ...(data.modoMonedas === "total" ? [["Monedas (total)", results.subtotalMonedas] as [string, number]] :
+      [20.1,10,5,2,1,0.5].map(d => [`Monedas de ${d === 20.1 ? 20 : d} (${data.efectivoConteo[d] || 0} piezas)`, (d === 20.1 ? 20 : d) * (data.efectivoConteo[d] || 0)] as [string, number])),
+    [`Dólares: ${data.dolaresConteo} USD × ${data.tipoCambioUSD || 15}`, results.subtotalDolares],
+    ...(data.apartadosEfectivo || []).map(a => ["Apartado: " + a.description, a.amount] as [string, number])
+  ]);
+  if (physicalRows.length) previewSections.push({ title: "Conteo físico", rows: physicalRows });
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 relative">
@@ -1322,6 +1350,24 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                       Monedas MXN
                     </h3>
 
+                    <div className="flex gap-1 border border-[#E6D5AB] rounded-lg p-1" role="group" aria-label="Modo de conteo de monedas">
+                      {(["desglose", "total"] as const).map(mode => (
+                        <button type="button" key={mode} aria-pressed={(data.modoMonedas || "desglose") === mode}
+                          onClick={() => setData(prev => ({ ...prev, modoMonedas: mode }))}
+                          className={`flex-1 min-h-10 rounded px-2 text-xs font-bold cursor-pointer ${(data.modoMonedas || "desglose") === mode ? "bg-[#3D405B] text-white" : "text-[#3D405B]"}`}>
+                          {mode === "desglose" ? "Por denominación" : "Total de monedas"}
+                        </button>
+                      ))}
+                    </div>
+                    {data.modoMonedas === "total" ? (
+                      <label className="block text-xs font-bold text-[#3D405B]">
+                        Total de monedas (MXN)
+                        <input type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00"
+                          value={data.totalMonedasManual || ""}
+                          onChange={e => setData(prev => ({ ...prev, totalMonedasManual: Math.max(0, parseFloat(e.target.value) || 0) }))}
+                          className="mt-2 w-full border border-[#E6D5AB] rounded-lg bg-white px-3 py-3 text-base font-mono" />
+                      </label>
+                    ) : (
                     <div className="space-y-2">
                       {[
                         { k: 20.1, label: "$20", v: 20 },
@@ -1372,7 +1418,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                           </div>
                         );
                       })}
-                    </div>
+                    </div>)}
                   </div>
 
                   {/* Dólares subpart */}
@@ -1458,6 +1504,29 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                 </div>
               </div>
 
+              <div className="flex flex-wrap justify-between gap-3 border-t border-[#E6D5AB] pt-5">
+                <button type="button" onClick={() => setCurrentStep(3)} className="px-5 py-3 text-sm font-bold">Regresar</button>
+                <button type="button" onClick={() => setCurrentStep(5)} className="flex items-center gap-2 bg-[#3D405B] text-white rounded-lg px-5 py-3 text-sm font-bold">Siguiente: Resumen <ArrowRight className="w-4 h-4" /></button>
+              </div>
+            </motion.div>
+          )}
+          {currentStep === 5 && (
+            <motion.div key="step5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+              <h2 className="text-2xl font-serif font-bold text-[#3D405B]">Resumen del corte</h2>
+              <div className="divide-y divide-[#E6D5AB]">
+                {previewSections.map(section => (
+                  <section key={section.title} className="py-4">
+                    <h3 className="text-sm font-bold text-[#3D405B] mb-3">{section.title}</h3>
+                    <dl className="space-y-2 text-sm">
+                      {section.rows.map(([label, value], index) => (
+                        <div key={index} className="flex flex-wrap justify-between gap-x-4 gap-y-1">
+                          <dt className="min-w-0 break-words">{label}</dt><dd className="font-semibold break-words">{value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </section>
+                ))}
+              </div>
               {/* RESUMEN DEL ARQUEO */}
               <div className="border-t border-[#E6D5AB] pt-6 space-y-4">
                 <h3 className="text-xs uppercase tracking-widest font-extrabold text-[#3D405B] mb-1">
@@ -1547,90 +1616,18 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                 )}
               </div>
 
-              {/* RESUMEN FINAL Y EXPORTACIONES */}
-              <div className="border-t border-[#E6D5AB] pt-6 space-y-5">
-                <h3 className="text-xs uppercase tracking-widest font-extrabold text-[#3D405B]">
-                  Informe de Cierre & Notificaciones
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  
-                  {/* Left export Box: PDF download */}
-                  <div className="border border-[#E6D5AB] bg-[#FFFCF2] p-5 rounded-3xl flex flex-col justify-between space-y-4 shadow-3xs">
-                    <div>
-                      <h4 className="font-serif text-sm text-[#3D405B] font-extrabold flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-[#81B29A]" />
-                        <span>Comprobante Oficial PDF</span>
-                      </h4>
-                      <p className="text-xs text-neutral-550 font-sans font-medium mt-1">
-                        Descargue el informe formal cuadriculado y auditado en PDF con todos tus detalles, desgloses filtrados, diferencias y marcas de firmas estructuradas para archivar diariamente.
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={handleDownloadPDF}
-                      className="w-full bg-[#3D405B] hover:bg-[#81B29A] text-white rounded-xl py-3 px-4 text-xs font-sans font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
-                    >
-                      <FileText className="w-4 h-4" />
-                      Descargar PDF Completo
-                    </button>
-                  </div>
-
-                  {/* Right export Box: WhatsApp / Auto copy */}
-                  <div className="border border-[#E6D5AB] bg-[#FFFCF2] p-5 rounded-3xl flex flex-col justify-between space-y-4 shadow-3xs">
-                    <div>
-                      <h4 className="font-serif text-sm text-[#3D405B] font-extrabold flex items-center gap-2">
-                        <Send className="w-4 h-4 text-[#107C41]" />
-                        <span>Notificar de Inmediato</span>
-                      </h4>
-                      <p className="text-xs text-neutral-550 font-sans font-medium mt-1">
-                        Copie el resumen estructurado al portapapeles o envíelo de inmediato por WhatsApp a tu supervisor, dueño o gerente con un solo clic.
-                      </p>
-                    </div>
-
-                    <div className="space-y-3 font-sans">
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-[9px] uppercase font-bold tracking-wider text-[#81B29A]/80 block">Número de WhatsApp del Receptor</label>
-                        <input
-                          type="text"
-                          placeholder="Ej. +5215512345678"
-                          value={whatsAppNumber}
-                          onChange={(e) => setWhatsAppNumber(e.target.value)}
-                          className="w-full bg-white border border-[#E6D5AB] focus:border-[#E07A5F] focus:outline-hidden rounded-xl px-3 py-2 text-xs font-mono text-[#3D405B] font-bold"
-                          autoComplete="off"
-                          autoCorrect="off"
-                          autoCapitalize="off"
-                          spellCheck={false}
-                        />
-                      </div>
-
-                      <div className="flex gap-2">
-                        <button
-                          onClick={handleShareWhatsApp}
-                          className="flex-1 bg-[#107C41] hover:bg-[#107C41]/90 text-white rounded-xl py-3 px-3 text-[10px] font-sans font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[44px]"
-                        >
-                          <Send className="w-3.5 h-3.5" />
-                          Enviar WhatsApp
-                        </button>
-                        
-                        <button
-                          onClick={handleCopySummary}
-                          className="px-4 bg-[#FFFCF2] hover:bg-[#F2CC8F] text-neutral-800 rounded-xl text-[10px] font-sans font-bold uppercase tracking-wider flex items-center justify-center cursor-pointer min-h-[44px]"
-                        >
-                          Copiar Texto
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                </div>
+              <div className="border-t border-[#E6D5AB] pt-6">
+                <button type="button" onClick={handleSendPDF} className="w-full flex items-center justify-center gap-2 bg-[#3D405B] text-white rounded-lg px-5 py-4 font-bold cursor-pointer">
+                  <Send className="w-5 h-5" /> ENVIAR PDF
+                </button>
+                {shareError && <p role="alert" className="mt-3 text-sm text-red-700">{shareError}</p>}
               </div>
 
               {/* Navigation */}
               <div className="flex justify-between items-center pt-4 border-t border-neutral-100">
                 <button
                   type="button"
-                  onClick={() => setCurrentStep(3)}
+                  onClick={() => setCurrentStep(4)}
                   className="bg-[#FFFCF2] hover:bg-[#F2CC8F] text-neutral-700 py-3 px-6 rounded-xl text-xs uppercase font-sans tracking-widest font-extrabold transition-all cursor-pointer min-h-[44px]"
                 >
                   Regresar

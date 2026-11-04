@@ -62,6 +62,8 @@ export interface CorteCajaData {
   // 4. Conteo físico
   efectivoConteo: { [key: number]: number }; // key is denomination (using 20 for $20 bills and 20.1 for $20 coins)
   dolaresConteo: number;
+  modoMonedas?: "desglose" | "total";
+  totalMonedasManual?: number;
   tipoCambioUSD?: number;
   apartadosEfectivo?: ApartadoEfectivo[];
   // Campos heredados para abrir cortes guardados en versiones anteriores.

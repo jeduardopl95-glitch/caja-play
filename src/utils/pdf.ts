@@ -282,7 +282,7 @@ export function generateCortePDF(data: CorteCajaData, results: CorteCajaResult) 
     { key: 0.5, val: 0.5, label: "Moneda de $0.50 MXN" }
   ];
   
-  coinDenoms.forEach((c) => {
+  (data.modoMonedas === "total" ? [] : coinDenoms).forEach((c) => {
     const count = data.efectivoConteo[c.key] || 0;
     if (count > 0) {
       physicalRows.push({
@@ -296,7 +296,9 @@ export function generateCortePDF(data: CorteCajaData, results: CorteCajaResult) 
   drawTableRow("MONTONES / DENOMINACIÓN FÍSICA", "CANT × VALOR = SUB-TOTAL", true);
 
   if (physicalRows.length === 0) {
-    drawTableRow("No se reportaron billetes o monedas físicas con conteo mayor a cero", "$0.00 MXN");
+    if (data.modoMonedas !== "total" || !results.subtotalMonedas) {
+      drawTableRow("Sin desglose de billetes o monedas", "$0.00 MXN");
+    }
   } else {
     physicalRows.forEach((row) => {
       const multiplicationText = `${row.count} × $${(row.value / row.count).toLocaleString("es-MX", { minimumFractionDigits: 0 })} = ${formatMXN(row.value)}`;
@@ -454,7 +456,7 @@ export function generateCortePDF(data: CorteCajaData, results: CorteCajaResult) 
   doc.text("ESTE DOCUMENTO CONSTITUYE UN ACTA DE CONCILIACIÓN DE CAJA PLAY Y TIENE VALIDEZ DE REVISION DIARIA.", 20, 260);
 
   const pdfBlob = doc.output("blob");
-  const url = URL.createObjectURL(pdfBlob);
+  const url = "";
   
   return {
     doc,
