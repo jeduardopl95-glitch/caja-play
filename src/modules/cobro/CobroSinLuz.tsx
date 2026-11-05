@@ -531,7 +531,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 relative">
+    <div className="labs-cobro max-w-7xl mx-auto px-4 md:px-8 py-8 relative">
       {/* Toast Notification */}
       <AnimatePresence>
         {importNotification && (
@@ -539,7 +539,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-6 right-6 z-50 bg-[#003049] text-white border border-[#C1121F] px-5 py-3.5 rounded-lg shadow-xl flex items-center gap-3 text-xs font-mono font-bold"
+            className="fixed top-6 right-6 z-50 bg-[#141418] text-white border border-[#C1121F] px-5 py-3.5 rounded-lg shadow-xl flex items-center gap-3 text-xs font-mono font-bold"
           >
             <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
             <span>{importNotification}</span>
@@ -560,13 +560,13 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
               initial={{ scale: 0.95, y: 15 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 15 }}
-              className="bg-white border border-[#669BBC] rounded-lg max-w-md w-full p-6 md:p-8 text-center shadow-2xl font-sans"
+              className="bg-white border border-[#b5bec6] rounded-lg max-w-md w-full p-6 md:p-8 text-center shadow-2xl font-sans"
             >
-              <div className="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto mb-4 animate-bounce">
+              <div className="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="w-7 h-7 text-emerald-600" />
               </div>
 
-              <h3 className="font-serif text-2xl font-bold text-[#003049] mb-1">Cobro Registrado</h3>
+              <h3 className="font-serif text-2xl font-bold text-[#141418] mb-1">Cobro Registrado</h3>
 
               <div className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-mono font-bold py-2.5 px-4 rounded-xl mb-4 flex items-center justify-center gap-2">
                 <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -574,12 +574,12 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
               </div>
 
               {/* Resumen generado */}
-              <div className="bg-[#FDF0D5] border border-[#669BBC] rounded-xl p-4 text-left font-mono text-xs text-neutral-800 mb-5 whitespace-pre-wrap max-h-48 overflow-y-auto">
+              <div className="bg-[#edf2fd] border border-[#b5bec6] rounded-xl p-4 text-left font-mono text-xs text-neutral-800 mb-5 whitespace-pre-wrap max-h-48 overflow-y-auto">
                 {lastCompletedSummary}
               </div>
 
               {cashReceived !== "" && (
-                <div className="text-xs font-mono text-[#003049] bg-[#FDF0D5] border border-[#669BBC] p-3 rounded-xl mb-6 flex justify-between items-center px-4">
+                <div className="text-xs font-mono text-[#141418] bg-[#edf2fd] border border-[#b5bec6] p-3 rounded-xl mb-6 flex justify-between items-center px-4">
                   <span>Su cambio:</span>
                   <span className="text-emerald-700 font-bold text-base">${changeAmount.toFixed(2)}</span>
                 </div>
@@ -601,7 +601,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                 <button
                   type="button"
                   onClick={handleManualCopy}
-                  className="w-full bg-[#FDF0D5] hover:bg-neutral-200 text-neutral-700 border border-[#669BBC] py-3 px-6 rounded-xl text-xs uppercase font-mono tracking-wider font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full bg-[#edf2fd] hover:bg-neutral-200 text-neutral-700 border border-[#b5bec6] py-3 px-6 rounded-xl text-xs uppercase font-mono tracking-wider font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Copy className="w-3.5 h-3.5" />
                   <span>{copiedNotification ? "¡Copiado!" : "Volver a copiar texto"}</span>
@@ -615,7 +615,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                     setShowSuccess(false);
                     searchInputRef.current?.focus();
                   }}
-                  className="w-full bg-[#003049] hover:bg-[#C1121F] text-white py-3.5 px-6 rounded-xl text-xs uppercase font-mono tracking-wider font-bold transition-all cursor-pointer mt-1"
+                  className="w-full bg-[#141418] hover:bg-[#C1121F] text-white py-3.5 px-6 rounded-xl text-xs uppercase font-mono tracking-wider font-bold transition-all cursor-pointer mt-1"
                 >
                   Nueva Venta
                 </button>
@@ -638,16 +638,16 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
               initial={{ scale: 0.95, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 20 }}
-              className="bg-white border border-[#669BBC] rounded-lg max-w-2xl w-full p-6 md:p-8 shadow-2xl font-sans my-8"
+              className="bg-white border border-[#b5bec6] rounded-lg max-w-2xl w-full p-6 md:p-8 shadow-2xl font-sans my-8"
             >
               {/* Modal Header */}
-              <div className="flex items-center justify-between border-b border-[#669BBC] pb-4 mb-6">
+              <div className="flex items-center justify-between border-b border-[#b5bec6] pb-4 mb-6">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-[#FDF0D5] border border-[#669BBC] flex items-center justify-center text-[#780000]">
+                  <div className="w-10 h-10 rounded-lg bg-[#edf2fd] border border-[#b5bec6] flex items-center justify-center text-[#780000]">
                     <FileSpreadsheet className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-serif text-xl font-bold text-[#003049]">
+                    <h3 className="font-serif text-xl font-bold text-[#141418]">
                       Actualizar Costos e Inventario
                     </h3>
                     <p className="text-xs text-neutral-500 font-sans">
@@ -668,13 +668,13 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
               </div>
 
               {/* Tabs */}
-              <div className="flex border-b border-[#669BBC] mb-6 gap-2">
+              <div className="flex border-b border-[#b5bec6] mb-6 gap-2">
                 <button
                   type="button"
                   onClick={() => setImportTab("file")}
                   className={`pb-3 px-4 text-xs font-mono font-bold uppercase tracking-wider transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
                     importTab === "file"
-                      ? "border-[#C1121F] text-[#003049]"
+                      ? "border-[#C1121F] text-[#141418]"
                       : "border-transparent text-neutral-400 hover:text-neutral-700"
                   }`}
                 >
@@ -687,7 +687,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                   onClick={() => setImportTab("paste")}
                   className={`pb-3 px-4 text-xs font-mono font-bold uppercase tracking-wider transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
                     importTab === "paste"
-                      ? "border-[#C1121F] text-[#003049]"
+                      ? "border-[#C1121F] text-[#141418]"
                       : "border-transparent text-neutral-400 hover:text-neutral-700"
                   }`}
                 >
@@ -700,7 +700,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                   onClick={() => setImportTab("sheets")}
                   className={`pb-3 px-4 text-xs font-mono font-bold uppercase tracking-wider transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
                     importTab === "sheets"
-                      ? "border-[#C1121F] text-[#003049]"
+                      ? "border-[#C1121F] text-[#141418]"
                       : "border-transparent text-neutral-400 hover:text-neutral-700"
                   }`}
                 >
@@ -722,8 +722,8 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                     onClick={() => fileInputRef.current?.click()}
                     className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all ${
                       isDraggingFile
-                        ? "border-[#C1121F] bg-[#FDF0D5]"
-                        : "border-[#669BBC] hover:border-neutral-400 bg-[#FDF0D5]"
+                        ? "border-[#C1121F] bg-[#edf2fd]"
+                        : "border-[#b5bec6] hover:border-neutral-400 bg-[#edf2fd]"
                     }`}
                   >
                     <input
@@ -733,7 +733,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                       accept=".csv, .txt, text/csv"
                       className="hidden"
                     />
-                    <div className="w-14 h-14 rounded-full bg-white border border-[#669BBC] flex items-center justify-center mx-auto mb-3 text-[#780000] shadow-2xs">
+                    <div className="w-14 h-14 rounded-full bg-white border border-[#b5bec6] flex items-center justify-center mx-auto mb-3 text-[#780000] shadow-2xs">
                       <Upload className="w-6 h-6" />
                     </div>
                     <p className="text-sm font-sans font-semibold text-neutral-800 mb-1">
@@ -742,7 +742,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                     <p className="text-xs text-neutral-500 font-mono">
                       Compatible con INVENTARIO 30SEP26, Excel CSV delimitado por comas o punto y coma
                     </p>
-                    <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#003049] text-white rounded-xl text-xs font-mono font-bold">
+                    <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#141418] text-white rounded-xl text-xs font-mono font-bold">
                       Examinar archivo
                     </div>
                   </div>
@@ -764,7 +764,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                         processCSVText(e.target.value, "Texto pegado");
                       }}
                       placeholder="Código,Descripcion,Precio,Departamento&#10;7501022014585,7 Up 600ml,$20.00,Pepsi&#10;7501005102704,Ades Guanabana 946ml,$30.00,Coca Cola"
-                      className="w-full bg-[#FDF0D5] border border-[#669BBC] focus:border-[#C1121F] focus:bg-white focus:outline-none rounded-lg p-4 text-xs font-mono text-neutral-800"
+                      className="w-full bg-[#edf2fd] border border-[#b5bec6] focus:border-[#C1121F] focus:bg-white focus:outline-none rounded-lg p-4 text-xs font-mono text-neutral-800"
                     />
                   </div>
                 </div>
@@ -782,7 +782,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                       value={customSheetUrl}
                       onChange={(e) => setCustomSheetUrl(e.target.value)}
                       placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv"
-                      className="w-full bg-[#FDF0D5] border border-[#669BBC] focus:border-[#C1121F] focus:bg-white focus:outline-none rounded-xl px-4 py-3 text-xs font-mono text-neutral-800"
+                      className="w-full bg-[#edf2fd] border border-[#b5bec6] focus:border-[#C1121F] focus:bg-white focus:outline-none rounded-xl px-4 py-3 text-xs font-mono text-neutral-800"
                     />
                     <p className="text-[11px] text-neutral-400 font-sans mt-2">
                       Obtén este enlace en Google Sheets yendo a: Archivo &gt; Compartir &gt; Publicar en la web &gt; Formato CSV.
@@ -805,7 +805,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                       }
                     }}
                     disabled={isSyncing}
-                    className="w-full bg-white border border-[#669BBC] hover:bg-[#003049] hover:text-white py-3 px-4 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer flex items-center justify-center gap-2"
+                    className="w-full bg-white border border-[#b5bec6] hover:bg-[#141418] hover:text-white py-3 px-4 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
                     <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} />
                     <span>{isSyncing ? "Verificando..." : "Descargar y Previsualizar"}</span>
@@ -823,15 +823,15 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
 
               {/* PREVIEW OF PARSED DATA */}
               {previewItems.length > 0 && (
-                <div className="mt-6 border border-[#669BBC] rounded-lg p-4 bg-[#FDF0D5] space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#669BBC] pb-3">
+                <div className="mt-6 border border-[#b5bec6] rounded-lg p-4 bg-[#edf2fd] space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#b5bec6] pb-3">
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                       <span className="text-xs font-mono font-bold text-neutral-900">
                         {previewItems.length} productos detectados
                       </span>
                       {previewSourceName && (
-                        <span className="text-[11px] font-mono text-neutral-500 bg-white border border-[#669BBC] px-2 py-0.5 rounded">
+                        <span className="text-[11px] font-mono text-neutral-500 bg-white border border-[#b5bec6] px-2 py-0.5 rounded">
                           {previewSourceName}
                         </span>
                       )}
@@ -845,11 +845,11 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                   <div className="text-[11px] font-mono text-neutral-500 mb-1">
                     Muestra de los primeros productos parseados:
                   </div>
-                  <div className="bg-white border border-[#669BBC] rounded-xl overflow-hidden max-h-40 overflow-y-auto divide-y divide-[#669BBC]">
+                  <div className="bg-white border border-[#b5bec6] rounded-xl overflow-hidden max-h-40 overflow-y-auto divide-y divide-[#b5bec6]">
                     {previewItems.slice(0, 5).map((item, idx) => (
                       <div key={idx} className="p-2.5 flex items-center justify-between text-xs font-mono gap-2">
                         <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-[10px] bg-[#003049] text-white px-1.5 py-0.5 rounded font-bold">
+                          <span className="text-[10px] bg-[#141418] text-white px-1.5 py-0.5 rounded font-bold">
                             {item.departamento}
                           </span>
                           <span className="text-neutral-800 truncate font-sans font-medium">
@@ -859,7 +859,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                             <span className="text-neutral-400 text-[10px]">({item.codigo})</span>
                           )}
                         </div>
-                        <span className="font-bold text-[#669BBC] shrink-0">
+                        <span className="font-bold text-[#b5bec6] shrink-0">
                           ${item.precio.toFixed(2)}
                         </span>
                       </div>
@@ -870,7 +870,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                     <button
                       type="button"
                       onClick={handleApplyImport}
-                      className="flex-1 bg-[#003049] hover:bg-[#C1121F] text-white py-3.5 px-6 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer shadow-md flex items-center justify-center gap-2"
+                      className="flex-1 bg-[#141418] hover:bg-[#C1121F] text-white py-3.5 px-6 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer shadow-md flex items-center justify-center gap-2"
                     >
                       <Check className="w-4 h-4" />
                       <span>Confirmar y Actualizar Catálogo ({previewItems.length} productos)</span>
@@ -881,7 +881,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                         setPreviewItems([]);
                         setPreviewSourceName("");
                       }}
-                      className="bg-white border border-[#669BBC] hover:bg-neutral-100 text-neutral-600 py-3.5 px-4 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer"
+                      className="bg-white border border-[#b5bec6] hover:bg-neutral-100 text-neutral-600 py-3.5 px-4 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer"
                     >
                       Limpiar
                     </button>
@@ -906,16 +906,16 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
               initial={{ scale: 0.95, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 20 }}
-              className="bg-white border border-[#669BBC] rounded-lg max-w-4xl w-full p-6 md:p-8 shadow-2xl font-sans my-6 max-h-[90vh] flex flex-col"
+              className="bg-white border border-[#b5bec6] rounded-lg max-w-4xl w-full p-6 md:p-8 shadow-2xl font-sans my-6 max-h-[90vh] flex flex-col"
             >
               {/* Header */}
-              <div className="flex items-center justify-between border-b border-[#669BBC] pb-4 mb-4 shrink-0">
+              <div className="flex items-center justify-between border-b border-[#b5bec6] pb-4 mb-4 shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-[#FDF0D5] border border-[#669BBC] flex items-center justify-center text-[#780000]">
+                  <div className="w-10 h-10 rounded-lg bg-[#edf2fd] border border-[#b5bec6] flex items-center justify-center text-[#780000]">
                     <Eye className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-serif text-xl font-bold text-[#003049]">
+                    <h3 className="font-serif text-xl font-bold text-[#141418]">
                       Explorador de Precios y Catálogo
                     </h3>
                     <p className="text-xs text-neutral-500 font-sans">
@@ -940,7 +940,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                     value={catalogSearch}
                     onChange={(e) => setCatalogSearch(e.target.value)}
                     placeholder="Buscar producto por nombre o código de barras..."
-                    className="w-full bg-[#FDF0D5] border border-[#669BBC] focus:border-[#C1121F] focus:bg-white focus:outline-none rounded-xl pl-10 pr-4 py-2.5 text-xs font-sans"
+                    className="w-full bg-[#edf2fd] border border-[#b5bec6] focus:border-[#C1121F] focus:bg-white focus:outline-none rounded-xl pl-10 pr-4 py-2.5 text-xs font-sans"
                   />
                   {catalogSearch && (
                     <button
@@ -956,7 +956,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                   <select
                     value={catalogDepto}
                     onChange={(e) => setCatalogDepto(e.target.value)}
-                    className="w-full bg-[#FDF0D5] border border-[#669BBC] focus:border-[#C1121F] focus:bg-white focus:outline-none rounded-xl px-3 py-2.5 text-xs font-mono text-neutral-800 cursor-pointer"
+                    className="w-full bg-[#edf2fd] border border-[#b5bec6] focus:border-[#C1121F] focus:bg-white focus:outline-none rounded-xl px-3 py-2.5 text-xs font-mono text-neutral-800 cursor-pointer"
                   >
                     <option value="TODOS">Todos los departamentos ({departmentsList.length})</option>
                     {departmentsList.map((dep) => (
@@ -969,16 +969,16 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
               </div>
 
               {/* Table / List */}
-              <div className="flex-1 overflow-y-auto border border-[#669BBC] rounded-lg divide-y divide-[#669BBC]">
+              <div className="flex-1 overflow-y-auto border border-[#b5bec6] rounded-lg divide-y divide-[#b5bec6]">
                 {catalogModalFiltered.length > 0 ? (
                   catalogModalFiltered.map((item) => (
                     <div
                       key={item.id}
-                      className="p-3.5 hover:bg-[#FDF0D5] transition-colors flex items-center justify-between gap-3 text-xs"
+                      className="p-3.5 hover:bg-[#edf2fd] transition-colors flex items-center justify-between gap-3 text-xs"
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[10px] font-mono font-bold bg-[#003049] text-white px-2 py-0.5 rounded uppercase">
+                          <span className="text-[10px] font-mono font-bold bg-[#141418] text-white px-2 py-0.5 rounded uppercase">
                             {item.departamento}
                           </span>
                           {item.codigo && (
@@ -993,7 +993,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                       </div>
 
                       <div className="flex items-center gap-4 shrink-0">
-                        <span className="font-mono font-bold text-base text-[#669BBC]">
+                        <span className="font-mono font-bold text-base text-[#b5bec6]">
                           ${item.precio.toFixed(2)}
                         </span>
                         <button
@@ -1003,7 +1003,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                             setImportNotification(`Agregado: ${item.descripcion}`);
                             setTimeout(() => setImportNotification(null), 2500);
                           }}
-                          className="px-3 py-1.5 bg-neutral-100 hover:bg-[#003049] text-neutral-700 hover:text-white rounded-lg font-mono font-bold text-[11px] transition-colors cursor-pointer flex items-center gap-1"
+                          className="px-3 py-1.5 bg-neutral-100 hover:bg-[#141418] text-neutral-700 hover:text-white rounded-lg font-mono font-bold text-[11px] transition-colors cursor-pointer flex items-center gap-1"
                         >
                           <Plus className="w-3 h-3" />
                           <span>Agregar</span>
@@ -1019,7 +1019,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
               </div>
 
               {/* Modal Footer */}
-              <div className="mt-4 flex items-center justify-between text-xs font-mono text-neutral-500 pt-3 border-t border-[#669BBC] shrink-0">
+              <div className="mt-4 flex items-center justify-between text-xs font-mono text-neutral-500 pt-3 border-t border-[#b5bec6] shrink-0">
                 <span>
                   Mostrando {catalogModalFiltered.length} de {inventory.length} productos
                 </span>
@@ -1027,7 +1027,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                   <button
                     type="button"
                     onClick={handleExportCSV}
-                    className="px-3 py-1.5 bg-[#FDF0D5] hover:bg-neutral-200 text-neutral-700 border border-[#669BBC] rounded-xl text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                    className="px-3 py-1.5 bg-[#edf2fd] hover:bg-neutral-200 text-neutral-700 border border-[#b5bec6] rounded-xl text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5"
                   >
                     <Download className="w-3.5 h-3.5" />
                     <span>Descargar Catálogo CSV</span>
@@ -1035,7 +1035,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                   <button
                     type="button"
                     onClick={() => setShowCatalogModal(false)}
-                    className="px-4 py-1.5 bg-[#003049] text-white rounded-xl text-xs font-mono font-bold cursor-pointer"
+                    className="px-4 py-1.5 bg-[#141418] text-white rounded-xl text-xs font-mono font-bold cursor-pointer"
                   >
                     Cerrar
                   </button>
@@ -1047,17 +1047,17 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
       </AnimatePresence>
 
       {/* HEADER BACK & OFFLINE TAG */}
-      <div className="mb-6 flex items-center justify-between border-b border-[#669BBC] pb-4">
+      <div className="mb-6 flex items-center justify-between border-b border-[#b5bec6] pb-4">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 group text-neutral-500 hover:text-[#003049] transition-colors py-2 text-xs font-mono uppercase tracking-widest font-bold cursor-pointer"
+          className="flex items-center gap-2 group text-neutral-500 hover:text-[#141418] transition-colors py-2 text-xs font-mono uppercase tracking-widest font-bold cursor-pointer"
         >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform text-neutral-400 group-hover:text-[#003049]" />
+          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform text-neutral-400 group-hover:text-[#141418]" />
           <span>Volver al menú</span>
         </button>
-        <div className="flex items-center gap-2 bg-[#FDF0D5] border border-[#669BBC] px-3 py-1.5 rounded-full">
-          <div className="w-2 h-2 rounded-full bg-[#C1121F] animate-pulse"></div>
-          <span className="text-[10px] font-mono tracking-widest text-[#669BBC] uppercase font-bold">
+        <div className="flex items-center gap-2 bg-[#edf2fd] border border-[#b5bec6] px-3 py-1.5 rounded-full">
+          <div className="w-2 h-2 rounded-full bg-[#C1121F]"></div>
+          <span className="text-[10px] font-mono tracking-widest text-[#b5bec6] uppercase font-bold">
             Módulo Offline Activo
           </span>
         </div>
@@ -1068,13 +1068,13 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
         <h1 className="font-serif text-3xl md:text-4xl font-light text-neutral-900 tracking-tight">
           Cobro sin Luz
         </h1>
-        <p className="text-[#003049] font-sans font-light text-sm max-w-2xl">
+        <p className="text-[#141418] font-sans font-light text-sm max-w-2xl">
           Módulo de cobro rápido con escáneres USB / Bluetooth y precios actualizados fuera de línea.
         </p>
       </div>
 
       {/* INVENTORY MANAGEMENT BAR */}
-      <div className="bg-[#FDF0D5] border border-[#669BBC] rounded-lg p-4 mb-8 flex flex-wrap items-center justify-between gap-4 shadow-2xs">
+      <div className="bg-[#edf2fd] border border-[#b5bec6] rounded-lg p-4 mb-8 flex flex-wrap items-center justify-between gap-4 shadow-2xs">
         <div className="flex items-center gap-3">
           <div
             className={`w-3 h-3 rounded-full ${
@@ -1083,7 +1083,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
           />
           <div className="text-xs font-sans text-neutral-700">
             <span className="font-bold text-neutral-900">Catálogo Activo: </span>
-            <span className="font-mono font-bold text-[#669BBC] text-sm">{inventory.length}</span>{" "}
+            <span className="font-mono font-bold text-[#b5bec6] text-sm">{inventory.length}</span>{" "}
             productos cargados.
             {lastSyncDate && (
               <span className="text-neutral-500 font-mono text-[11px] block sm:inline sm:ml-2">
@@ -1101,7 +1101,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
               setShowImportModal(true);
               setImportTab("file");
             }}
-            className="flex items-center gap-2 px-3.5 py-2 bg-[#003049] hover:bg-[#C1121F] text-white rounded-xl text-xs font-mono font-bold transition-all cursor-pointer shadow-sm"
+            className="flex items-center gap-2 px-3.5 py-2 bg-[#141418] hover:bg-[#C1121F] text-white rounded-xl text-xs font-mono font-bold transition-all cursor-pointer shadow-sm"
             title="Cargar nuevo archivo CSV de costos e inventario (ej. INVENTARIO 30SEP26)"
           >
             <Upload className="w-3.5 h-3.5" />
@@ -1114,7 +1114,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
           {/* View Catalog */}
           <button
             onClick={() => setShowCatalogModal(true)}
-            className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-neutral-100 text-neutral-800 border border-[#669BBC] rounded-xl text-xs font-mono font-bold transition-all cursor-pointer shadow-2xs"
+            className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-neutral-100 text-neutral-800 border border-[#b5bec6] rounded-xl text-xs font-mono font-bold transition-all cursor-pointer shadow-2xs"
             title="Ver catálogo completo de precios"
           >
             <Eye className="w-3.5 h-3.5 text-neutral-500" />
@@ -1125,7 +1125,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
           <button
             onClick={handleSync}
             disabled={isSyncing}
-            className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-neutral-100 text-neutral-800 border border-[#669BBC] rounded-xl text-xs font-mono font-bold transition-all cursor-pointer shadow-2xs"
+            className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-neutral-100 text-neutral-800 border border-[#b5bec6] rounded-xl text-xs font-mono font-bold transition-all cursor-pointer shadow-2xs"
             title="Sincronizar desde Google Sheets en la nube"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin" : ""}`} />
@@ -1135,7 +1135,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
           {/* Export CSV */}
           <button
             onClick={handleExportCSV}
-            className="p-2 bg-white hover:bg-neutral-100 text-neutral-600 hover:text-neutral-900 border border-[#669BBC] rounded-xl text-xs transition-all cursor-pointer shadow-2xs"
+            className="p-2 bg-white hover:bg-neutral-100 text-neutral-600 hover:text-neutral-900 border border-[#b5bec6] rounded-xl text-xs transition-all cursor-pointer shadow-2xs"
             title="Descargar copia de respaldo en formato CSV"
           >
             <Download className="w-3.5 h-3.5" />
@@ -1155,8 +1155,8 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-10 items-start">
         {/* Left Column: Smart Searcher & Catalog */}
         <div className="lg:col-span-7 space-y-6">
-          <div className="bg-white border border-[#669BBC] rounded-lg p-6 md:p-8 shadow-xs">
-            <label className="block text-xs font-mono font-bold tracking-widest text-[#003049] uppercase mb-3 flex items-center justify-between">
+          <div className="bg-white border border-[#b5bec6] rounded-lg p-6 md:p-8 shadow-xs">
+            <label className="block text-xs font-mono font-bold tracking-widest text-[#141418] uppercase mb-3 flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <Search className="w-4 h-4 text-[#780000]" />
                 Buscador Inteligente de Productos
@@ -1174,7 +1174,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                 onChange={handleSearchChange}
                 onKeyDown={handleSearchKeyDown}
                 placeholder="Escanea código o busca por descripción, depto..."
-                className="w-full bg-[#FDF0D5] border border-[#669BBC] focus:border-[#C1121F] focus:bg-white focus:outline-none rounded-lg px-5 py-4 text-base font-sans text-[#003049] placeholder:text-neutral-400 transition-all shadow-inner"
+                className="w-full bg-[#edf2fd] border border-[#b5bec6] focus:border-[#C1121F] focus:bg-white focus:outline-none rounded-lg px-5 py-4 text-base font-sans text-[#141418] placeholder:text-neutral-400 transition-all shadow-inner"
               />
               {searchQuery && (
                 <button
@@ -1195,19 +1195,19 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                 {filterOptions.map(({ key, label }) => (
                   <button type="button" key={key} aria-pressed={searchFilters[key].enabled}
                     onClick={() => setSearchFilters(prev => ({ ...prev, [key]: { ...prev[key], enabled: !prev[key].enabled } }))}
-                    className={`flex items-center gap-2 border border-[#669BBC] rounded-lg px-3 py-2 text-xs font-semibold cursor-pointer ${searchFilters[key].enabled ? "bg-[#003049] text-white" : "bg-white text-[#003049]"}`}>
+                    className={`flex items-center gap-2 border border-[#b5bec6] rounded-lg px-3 py-2 text-xs font-semibold cursor-pointer ${searchFilters[key].enabled ? "bg-[#141418] text-white" : "bg-white text-[#141418]"}`}>
                     {searchFilters[key].enabled && <Check className="w-4 h-4" />}
                     {label}
                   </button>
                 ))}
                 {filterOptions.some(({ key }) => searchFilters[key].enabled) && (
                   <button type="button" onClick={() => setSearchFilters(prev => Object.fromEntries(Object.entries(prev).map(([key]) => [key, { enabled: false, value: "" }])) as typeof prev)}
-                    className="px-3 py-2 text-xs text-[#003049] underline">Limpiar filtros</button>
+                    className="px-3 py-2 text-xs text-[#141418] underline">Limpiar filtros</button>
                 )}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {filterOptions.filter(({ key }) => searchFilters[key].enabled).map(({ key, label }) => (
-                  <label key={key} className="text-xs font-semibold text-[#003049]">
+                  <label key={key} className="text-xs font-semibold text-[#141418]">
                     {key === "price" && searchFilters.price.value.trim().startsWith("-") ? "Precio máximo (MXN)" : label}
                     <input type="text" inputMode={key === "price" ? "text" : key === "barcode" ? "numeric" : "text"}
                       value={searchFilters[key].value}
@@ -1219,17 +1219,17 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
             </div>
 
             {/* Live Search Results List */}
-            <div className="mt-6 border border-[#669BBC] rounded-lg bg-white overflow-hidden max-h-[440px] overflow-y-auto divide-y divide-[#669BBC]">
+            <div className="mt-6 border border-[#b5bec6] rounded-lg bg-white overflow-hidden max-h-[440px] overflow-y-auto divide-y divide-[#b5bec6]">
               {filteredResults.length > 0 ? (
                 filteredResults.map((item) => (
                   <div
                     key={item.id}
                     onClick={() => handleSelectProduct(item)}
-                    className="p-5 hover:bg-[#FDF0D5] transition-colors cursor-pointer flex items-center justify-between gap-4 group active:scale-[0.995]"
+                    className="p-5 hover:bg-[#edf2fd] transition-colors cursor-pointer flex items-center justify-between gap-4 group active:scale-[0.995]"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[10px] font-mono font-bold text-white bg-[#003049] group-hover:bg-[#C1121F] px-2 py-0.5 rounded transition-colors uppercase tracking-wider">
+                        <span className="text-[10px] font-mono font-bold text-white bg-[#141418] group-hover:bg-[#C1121F] px-2 py-0.5 rounded transition-colors uppercase tracking-wider">
                           {item.departamento}
                         </span>
                         {item.codigo && (
@@ -1242,7 +1242,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                     </div>
 
                     <div className="text-right flex items-center gap-3">
-                      <span className="text-base font-mono font-bold text-[#669BBC]">
+                      <span className="text-base font-mono font-bold text-[#b5bec6]">
                         ${item.precio.toFixed(2)}
                       </span>
                       <div className="w-11 h-11 rounded-full bg-[#C1121F] group-hover:bg-[#780000] text-white flex items-center justify-center transition-colors shrink-0">
@@ -1266,11 +1266,11 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
           </div>
 
           {/* Collapsible Manual Fallback Input */}
-          <div className="bg-[#FDF0D5] border border-[#669BBC] rounded-lg overflow-hidden">
+          <div className="bg-[#edf2fd] border border-[#b5bec6] rounded-lg overflow-hidden">
             <button
               type="button"
               onClick={() => setShowManualFallback(!showManualFallback)}
-              className="w-full p-5 flex items-center justify-between text-xs font-mono font-bold text-neutral-600 hover:text-[#003049] transition-colors cursor-pointer"
+              className="w-full p-5 flex items-center justify-between text-xs font-mono font-bold text-neutral-600 hover:text-[#141418] transition-colors cursor-pointer"
             >
               <span className="flex items-center gap-2">
                 <PlusCircle className="w-4 h-4 text-neutral-500" />
@@ -1286,7 +1286,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   onSubmit={handleAddManualProduct}
-                  className="p-6 pt-2 space-y-4 border-t border-[#669BBC] bg-white"
+                  className="p-6 pt-2 space-y-4 border-t border-[#b5bec6] bg-white"
                 >
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
                     <div className="md:col-span-6">
@@ -1299,7 +1299,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                         placeholder="Ej. Hielo Extra"
                         value={manualName}
                         onChange={(e) => setManualName(e.target.value)}
-                        className="w-full bg-[#FDF0D5] border border-[#669BBC] focus:border-[#C1121F] focus:outline-none rounded-xl px-3.5 py-2.5 text-xs font-sans"
+                        className="w-full bg-[#edf2fd] border border-[#b5bec6] focus:border-[#C1121F] focus:outline-none rounded-xl px-3.5 py-2.5 text-xs font-sans"
                       />
                     </div>
                     <div className="md:col-span-3">
@@ -1314,7 +1314,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                         placeholder="0.00"
                         value={manualPrice}
                         onChange={(e) => setManualPrice(e.target.value)}
-                        className="w-full bg-[#FDF0D5] border border-[#669BBC] focus:border-[#C1121F] focus:outline-none rounded-xl px-3.5 py-2.5 text-xs font-mono"
+                        className="w-full bg-[#edf2fd] border border-[#b5bec6] focus:border-[#C1121F] focus:outline-none rounded-xl px-3.5 py-2.5 text-xs font-mono"
                       />
                     </div>
                     <div className="md:col-span-3">
@@ -1327,14 +1327,14 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                         min="1"
                         value={manualQty}
                         onChange={(e) => setManualQty(e.target.value)}
-                        className="w-full bg-[#FDF0D5] border border-[#669BBC] focus:border-[#C1121F] focus:outline-none rounded-xl px-3.5 py-2.5 text-xs font-sans"
+                        className="w-full bg-[#edf2fd] border border-[#b5bec6] focus:border-[#C1121F] focus:outline-none rounded-xl px-3.5 py-2.5 text-xs font-sans"
                       />
                     </div>
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full bg-[#003049] hover:bg-[#C1121F] text-white py-3 px-4 rounded-xl text-xs uppercase font-mono tracking-widest font-bold transition-colors cursor-pointer"
+                    className="w-full bg-[#141418] hover:bg-[#C1121F] text-white py-3 px-4 rounded-xl text-xs uppercase font-mono tracking-widest font-bold transition-colors cursor-pointer"
                   >
                     Agregar Manual al Ticket
                   </button>
@@ -1346,19 +1346,19 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
 
         {/* Right Column: Ticket Details & Checkout */}
         <div className="lg:col-span-5 space-y-6 sticky top-6">
-          <div className="bg-[#FDF0D5] border-2 border-dashed border-[#669BBC] rounded-lg flex flex-col overflow-hidden shadow-md">
-            <div className="p-5 bg-[#FDF0D5] border-b border-[#669BBC] flex items-center justify-between">
+          <div className="bg-[#edf2fd] border-2 border-dashed border-[#b5bec6] rounded-lg flex flex-col overflow-hidden shadow-md">
+            <div className="p-5 bg-[#edf2fd] border-b border-[#b5bec6] flex items-center justify-between">
               <h3 className="font-serif text-base font-light text-neutral-950 flex items-center gap-2.5">
-                <ReceiptText className="w-4 h-4 text-[#669BBC]" />
+                <ReceiptText className="w-4 h-4 text-[#b5bec6]" />
                 <span>Ticket Actual</span>
               </h3>
-              <span className="text-[10px] font-mono font-bold text-white bg-[#003049] px-2.5 py-1 rounded-sm uppercase tracking-wider">
+              <span className="text-[10px] font-mono font-bold text-white bg-[#141418] px-2.5 py-1 rounded-sm uppercase tracking-wider">
                 {cart.length} Artículos
               </span>
             </div>
 
             {/* Ticket Items List */}
-            <div className="p-6 max-h-[340px] overflow-y-auto space-y-3 divide-y divide-[#FDF0D5]">
+            <div className="p-6 max-h-[340px] overflow-y-auto space-y-3 divide-y divide-[#edf2fd]">
               <AnimatePresence initial={false}>
                 {cart.map((item) => (
                   <motion.div
@@ -1378,7 +1378,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <div className="flex items-center border border-[#669BBC] rounded-lg bg-[#FDF0D5] p-0.5">
+                      <div className="flex items-center border border-[#b5bec6] rounded-lg bg-[#edf2fd] p-0.5">
                         <button
                           type="button"
                           onClick={() => handleDecrement(item.id)}
@@ -1426,21 +1426,21 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
             </div>
 
             {/* Ticket Totals Summary */}
-            <div className="p-6 bg-[#FDF0D5] border-t border-[#669BBC] space-y-2.5">
+            <div className="p-6 bg-[#edf2fd] border-t border-[#b5bec6] space-y-2.5">
               <div className="flex justify-between text-xs text-neutral-600 font-sans">
                 <span>Subtotal</span>
                 <span className="font-mono">${cartSubtotal.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-neutral-950 font-medium border-t border-[#669BBC] pt-3 text-xl">
+              <div className="flex justify-between text-neutral-950 font-medium border-t border-[#b5bec6] pt-3 text-xl">
                 <span className="font-serif font-light">TOTAL</span>
-                <span className="font-mono text-[#669BBC] font-bold">${cartTotal.toFixed(2)}</span>
+                <span className="font-mono text-[#b5bec6] font-bold">${cartTotal.toFixed(2)}</span>
               </div>
             </div>
           </div>
 
           {/* Checkout Cash Tender Section */}
           {cart.length > 0 && (
-            <div className="bg-white border border-[#669BBC] rounded-lg p-6 md:p-8 space-y-5 shadow-xs">
+            <div className="bg-white border border-[#b5bec6] rounded-lg p-6 md:p-8 space-y-5 shadow-xs">
               <h3 className="font-serif text-base text-neutral-950 font-light">Pago con Efectivo</h3>
 
               <div className="space-y-3">
@@ -1455,7 +1455,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                     placeholder="Efectivo entregado"
                     value={cashReceived}
                     onChange={(e) => setCashReceived(e.target.value)}
-                    className="w-full bg-[#FDF0D5] border border-[#669BBC] focus:border-[#C1121F] focus:bg-white focus:outline-none rounded-xl pl-8 pr-4 py-3.5 text-lg font-mono text-[#003049] font-bold"
+                    className="w-full bg-[#edf2fd] border border-[#b5bec6] focus:border-[#C1121F] focus:bg-white focus:outline-none rounded-xl pl-8 pr-4 py-3.5 text-lg font-mono text-[#141418] font-bold"
                   />
                 </div>
 
@@ -1465,7 +1465,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                       key={bill}
                       type="button"
                       onClick={() => setCashReceived(bill.toString())}
-                      className="flex-1 min-w-[45px] bg-[#FDF0D5] hover:bg-[#C1121F] border border-[#669BBC] hover:border-[#C1121F] hover:text-white text-neutral-700 rounded-lg py-1.5 px-2 text-[11px] font-mono font-bold transition-all text-center cursor-pointer"
+                      className="flex-1 min-w-[45px] bg-[#edf2fd] hover:bg-[#C1121F] border border-[#b5bec6] hover:border-[#C1121F] hover:text-white text-neutral-700 rounded-lg py-1.5 px-2 text-[11px] font-mono font-bold transition-all text-center cursor-pointer"
                     >
                       ${bill}
                     </button>
@@ -1481,7 +1481,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
               </div>
 
               {cashReceived !== "" && (
-                <div className="bg-neutral-50 border border-[#669BBC] rounded-lg p-4 flex justify-between items-center">
+                <div className="bg-neutral-50 border border-[#b5bec6] rounded-lg p-4 flex justify-between items-center">
                   <div>
                     <span className="text-[9px] tracking-widest uppercase font-bold text-neutral-500">
                       {isEnoughCash ? "Su Cambio:" : "Falta Cobrar:"}
@@ -1508,7 +1508,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                 <button
                   type="button"
                   onClick={handleClearCart}
-                  className="bg-[#FDF0D5] border border-[#669BBC] hover:bg-red-50 hover:text-red-700 text-neutral-500 rounded-xl px-5 py-4 text-xs font-sans font-medium uppercase tracking-wide transition-colors flex items-center justify-center cursor-pointer shrink-0"
+                  className="bg-[#edf2fd] border border-[#b5bec6] hover:bg-red-50 hover:text-red-700 text-[#141418] rounded-xl px-5 py-4 text-xs font-sans font-medium uppercase tracking-wide transition-colors flex items-center justify-center cursor-pointer shrink-0"
                   title="Limpiar ticket"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -1520,7 +1520,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                   disabled={cart.length === 0 || (cashReceived !== "" && !isEnoughCash)}
                   className={`flex-1 rounded-xl text-xs uppercase font-mono tracking-widest font-bold text-center py-4 px-6 transition-all ${
                     cart.length > 0 && (cashReceived === "" || isEnoughCash)
-                      ? "bg-[#003049] hover:bg-[#C1121F] text-white cursor-pointer shadow-sm active:scale-[0.99]"
+                      ? "bg-[#141418] hover:bg-[#C1121F] text-white cursor-pointer shadow-sm active:scale-[0.99]"
                       : "bg-neutral-100 text-neutral-400 cursor-not-allowed"
                   }`}
                 >

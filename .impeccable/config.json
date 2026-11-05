@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "createdAt": "2026-11-05T06:58:24.606Z",
+        "reason": "Keep the existing Inter typography from the approved Caja Play redesign."
+      }
+    ]
+  }
+}

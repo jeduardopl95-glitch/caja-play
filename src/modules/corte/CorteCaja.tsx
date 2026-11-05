@@ -472,20 +472,20 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
   if (physicalRows.length) previewSections.push({ title: "Conteo físico", rows: physicalRows });
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 relative">
+    <div className="labs-corte max-w-4xl mx-auto px-4 py-8 relative">
       
       {/* Top Header Controls */}
       <div className="mb-8 flex items-center justify-between">
         <button 
           onClick={onBack}
-          className="flex items-center gap-2 group text-[#669BBC] hover:text-[#003049] transition-colors py-2 px-1 text-sm font-sans tracking-wide cursor-pointer font-bold"
+          className="flex items-center gap-2 group text-[#b5bec6] hover:text-[#141418] transition-colors py-2 px-1 text-sm font-sans tracking-wide cursor-pointer font-bold"
         >
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
           <span>Volver al menú</span>
         </button>
         <div className="flex items-center gap-3">
           {lastSavedAt && (
-            <span className="hidden sm:flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#669BBC]">
+            <span className="hidden sm:flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#b5bec6]">
               <CheckCircle className="w-3.5 h-3.5" />
               Guardado automático
             </span>
@@ -502,16 +502,16 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
 
       {/* Primary Titles */}
       <div className="mb-8 text-center md:text-left">
-        <h1 className="font-serif text-3xl font-extrabold text-[#003049] tracking-tight lg:text-4xl">
+        <h1 className="font-serif text-3xl font-extrabold text-[#141418] tracking-tight lg:text-4xl">
           Cierre de Caja Diario
         </h1>
-        <p className="text-[#669BBC]/80 font-sans text-sm mt-1 max-w-xl">
+        <p className="text-[#b5bec6]/80 font-sans text-sm mt-1 max-w-xl">
           Complete el asistente paso a paso para cuadrar cobros por tarjeta, registrar flujo de efectivo y realizar el arqueo físico definitivo.
         </p>
       </div>
 
       {/* Step Progress Indicators using beautiful dark blues */}
-      <div className="mb-8 bg-white border border-[#669BBC] rounded-lg p-4 shadow-xs">
+      <div className="mb-8 bg-white border border-[#b5bec6] rounded-lg p-4 shadow-xs">
         <div className="flex justify-between items-center relative gap-3 flex-col sm:flex-row">
           {WIZARD_STEPS.map((step, idx) => {
             const isActive = currentStep === step.step;
@@ -523,9 +523,9 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                   onClick={() => handleStepClick(step.step)}
                   className={`w-full sm:flex-1 flex items-center gap-3.5 p-2 rounded-xl transition-all ${
                     isActive 
-                      ? "bg-[#669BBC]/15 border border-[#669BBC]/40 text-[#669BBC]" 
+                      ? "bg-[#b5bec6]/15 border border-[#b5bec6]/40 text-[#b5bec6]" 
                       : isCompleted
-                      ? "opacity-95 hover:bg-[#FDF0D5] cursor-pointer"
+                      ? "opacity-95 hover:bg-[#edf4ee] cursor-pointer"
                       : "opacity-45 cursor-not-allowed"
                   }`}
                 >
@@ -533,13 +533,13 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                     isActive 
                       ? "bg-[#C1121F] text-white" 
                       : isCompleted 
-                      ? "bg-[#003049] text-white" 
-                      : "bg-[#FDF0D5] text-[#669BBC]/80"
+                      ? "bg-[#141418] text-white" 
+                      : "bg-[#edf4ee] text-[#b5bec6]/80"
                   }`}>
                     {isCompleted ? "✓" : step.step}
                   </div>
                   <div className="text-left">
-                    <p className={`text-[11px] uppercase tracking-wider font-extrabold ${isActive ? "text-[#669BBC]" : "text-neutral-700"}`}>
+                    <p className={`text-[11px] uppercase tracking-wider font-extrabold ${isActive ? "text-[#b5bec6]" : "text-neutral-700"}`}>
                       {step.label}
                     </p>
                     <p className="text-[10px] text-neutral-400 font-sans line-clamp-1">{step.desc}</p>
@@ -547,7 +547,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                 </div>
 
                 {idx < WIZARD_STEPS.length - 1 && (
-                  <div className="hidden sm:block text-[#669BBC]">
+                  <div className="hidden sm:block text-[#b5bec6]">
                     <ArrowRight className="w-4 h-4" />
                   </div>
                 )}
@@ -558,7 +558,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
       </div>
 
       {/* Interactive Form steps with transition - White box, borders in light gray */}
-      <div className="bg-white border border-[#669BBC] rounded-lg p-6 md:p-8 shadow-sm min-h-[400px]">
+      <div className="bg-white border border-[#b5bec6] rounded-lg p-6 md:p-8 shadow-sm min-h-[400px]">
         <AnimatePresence mode="wait">
           
           {/* STEP 1: INFORMACIÓN DEL CORTE */}
@@ -572,11 +572,11 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
               className="space-y-6"
             >
               <div>
-                <h2 className="font-serif text-2xl text-[#003049] font-extrabold flex items-center gap-2">
-                  <User className="w-6 h-6 text-[#669BBC]" />
+                <h2 className="font-serif text-2xl text-[#141418] font-extrabold flex items-center gap-2">
+                  <User className="w-6 h-6 text-[#b5bec6]" />
                   <span>Información del Turno</span>
                 </h2>
-                <p className="text-sm text-[#669BBC]/80 mt-1 font-sans">
+                <p className="text-sm text-[#b5bec6]/80 mt-1 font-sans">
                   Registre la fecha operacional, tienda o sucursal y el personal encargado directivo de la caja.
                 </p>
               </div>
@@ -584,34 +584,34 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                 {/* Fecha */}
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs uppercase font-extrabold tracking-wider text-[#003049]">Fecha del Turno</label>
+                  <label className="text-xs uppercase font-extrabold tracking-wider text-[#141418]">Fecha del Turno</label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                      <Calendar className="w-4 h-4 text-[#669BBC]" />
+                      <Calendar className="w-4 h-4 text-[#b5bec6]" />
                     </div>
                     <input
                       type="date"
                       value={data.fecha}
                       onChange={(e) => setData({ ...data, fecha: e.target.value })}
-                      className="w-full bg-[#FDF0D5] border border-[#669BBC] focus:border-[#C1121F] focus:bg-white focus:outline-hidden transition-colors rounded-xl pl-10 pr-4 py-3 text-sm text-[#003049] font-mono font-bold"
+                      className="w-full bg-[#edf4ee] border border-[#b5bec6] focus:border-[#C1121F] focus:bg-white focus:outline-hidden transition-colors rounded-xl pl-10 pr-4 py-3 text-sm text-[#141418] font-mono font-bold"
                     />
                   </div>
                 </div>
 
                 {/* Sucursal */}
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs uppercase font-extrabold tracking-wider text-[#003049] flex items-center gap-1">
+                  <label className="text-xs uppercase font-extrabold tracking-wider text-[#141418] flex items-center gap-1">
                     <span>Sucursal / Establecimiento</span>
                     <span className="text-[#780000] font-sans font-bold">*</span>
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                      <Sparkles className="w-4 h-4 text-[#669BBC]" />
+                      <Sparkles className="w-4 h-4 text-[#b5bec6]" />
                     </div>
                     <select
                       value={data.sucursal}
                       onChange={(e) => setData({ ...data, sucursal: e.target.value })}
-                      className="w-full bg-[#FDF0D5] border border-[#669BBC] focus:border-[#C1121F] focus:bg-white focus:outline-hidden transition-colors rounded-xl pl-10 pr-10 py-3.5 text-sm text-[#003049] font-sans font-extrabold appearance-none cursor-pointer"
+                      className="w-full bg-[#edf4ee] border border-[#b5bec6] focus:border-[#C1121F] focus:bg-white focus:outline-hidden transition-colors rounded-xl pl-10 pr-10 py-3.5 text-sm text-[#141418] font-sans font-extrabold appearance-none cursor-pointer"
                     >
                       <option value="">-- Seleccionar Establecimiento --</option>
                       <option value="CHETUMALITO">CHETUMALITO</option>
@@ -620,7 +620,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                       <option value="PLAYITA">PLAYITA</option>
                     </select>
                     <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                      <svg className="w-4 h-4 text-[#669BBC]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-[#b5bec6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
                       </svg>
                     </div>
@@ -629,19 +629,19 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
 
                 {/* Nombre del cajero */}
                 <div className="flex flex-col gap-2 md:col-span-2">
-                  <label className="text-xs uppercase font-extrabold tracking-wider text-[#003049]">
+                  <label className="text-xs uppercase font-extrabold tracking-wider text-[#141418]">
                     Nombre del Cajero <span className="text-neutral-400 font-normal italic">(Opcional)</span>
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                      <User className="w-4 h-4 text-[#669BBC]" />
+                      <User className="w-4 h-4 text-[#b5bec6]" />
                     </div>
                     <input
                       type="text"
                       placeholder="Ej. Sofía Rodríguez"
                       value={data.cajeroName}
                       onChange={(e) => setData({ ...data, cajeroName: e.target.value })}
-                      className="w-full bg-[#FDF0D5] border border-[#669BBC] focus:border-[#C1121F] focus:bg-white focus:outline-hidden transition-colors rounded-xl pl-10 pr-4 py-3 text-sm text-[#003049] font-sans font-semibold"
+                      className="w-full bg-[#edf4ee] border border-[#b5bec6] focus:border-[#C1121F] focus:bg-white focus:outline-hidden transition-colors rounded-xl pl-10 pr-4 py-3 text-sm text-[#141418] font-sans font-semibold"
                       autoComplete="off"
                       autoCorrect="off"
                       autoCapitalize="off"
@@ -662,7 +662,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                     }
                     setCurrentStep(2);
                   }}
-                  className="bg-[#003049] hover:bg-[#669BBC] active:scale-[0.99] text-white py-3.5 px-8 rounded-xl text-xs uppercase font-sans tracking-widest font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
+                  className="bg-[#141418] hover:bg-[#b5bec6] active:scale-[0.99] text-white py-3.5 px-8 rounded-xl text-xs uppercase font-sans tracking-widest font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
                 >
                   <span>Siguiente: Validación de Tarjetas</span>
                   <ArrowRight className="w-4 h-4" />
@@ -682,11 +682,11 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
               className="space-y-6"
             >
               <div>
-                <h2 className="font-serif text-2xl text-[#003049] font-extrabold flex items-center gap-2">
-                  <CreditCard className="w-6 h-6 text-[#669BBC]" />
+                <h2 className="font-serif text-2xl text-[#141418] font-extrabold flex items-center gap-2">
+                  <CreditCard className="w-6 h-6 text-[#b5bec6]" />
                   <span>Validación de Tarjetas</span>
                 </h2>
-                <p className="text-sm text-[#669BBC]/80 mt-1 font-sans">
+                <p className="text-sm text-[#b5bec6]/80 mt-1 font-sans">
                   Registre la suma de tarjetas que indica el corte de ticket del software y verifique contra el total físico liquidado en terminales.
                 </p>
               </div>
@@ -694,15 +694,15 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
                 {/* Left block - card sales according to tickets */}
-                <div className="bg-[#FDF0D5] border border-[#669BBC] p-5 rounded-lg space-y-4">
-                  <h3 className="text-xs uppercase tracking-widest font-extrabold text-[#003049] border-b border-[#669BBC] pb-2 flex items-center justify-between">
+                <div className="bg-[#edf4ee] border border-[#b5bec6] p-5 rounded-lg space-y-4">
+                  <h3 className="text-xs uppercase tracking-widest font-extrabold text-[#141418] border-b border-[#b5bec6] pb-2 flex items-center justify-between">
                     <span>1. Tarjetas en Tickets de Venta</span>
                     <span className="font-mono text-neutral-600 text-[10px] font-bold">Importe</span>
                   </h3>
 
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-[10px] mb-1 uppercase font-bold tracking-wider text-[#669BBC]/80">Ticket Mañana (Soft Total Tarjetas)</label>
+                      <label className="block text-[10px] mb-1 uppercase font-bold tracking-wider text-[#b5bec6]/80">Ticket Mañana (Soft Total Tarjetas)</label>
                       <input
                         type="number"
                         inputMode="decimal"
@@ -711,13 +711,13 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                         placeholder="0.00"
                         value={data.tarjetaManana || ""}
                         onChange={(e) => setData({ ...data, tarjetaManana: parseFloat(e.target.value) || 0 })}
-                        className="w-full bg-white border border-[#669BBC] focus:border-[#C1121F] focus:outline-hidden rounded-xl px-4 py-2.5 text-sm font-mono font-bold text-[#003049]"
+                        className="w-full bg-white border border-[#b5bec6] focus:border-[#C1121F] focus:outline-hidden rounded-xl px-4 py-2.5 text-sm font-mono font-bold text-[#141418]"
                         autoComplete="off"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[10px] mb-1 uppercase font-bold tracking-wider text-[#003049]">Ticket Tarde (Soft Total Tarjetas)</label>
+                      <label className="block text-[10px] mb-1 uppercase font-bold tracking-wider text-[#141418]">Ticket Tarde (Soft Total Tarjetas)</label>
                       <input
                         type="number"
                         inputMode="decimal"
@@ -726,30 +726,30 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                         placeholder="0.00"
                         value={data.tarjetaTarde || ""}
                         onChange={(e) => setData({ ...data, tarjetaTarde: parseFloat(e.target.value) || 0 })}
-                        className="w-full bg-white border border-[#669BBC] focus:border-[#C1121F] focus:outline-hidden rounded-xl px-4 py-2.5 text-sm font-mono font-bold text-[#003049]"
+                        className="w-full bg-white border border-[#b5bec6] focus:border-[#C1121F] focus:outline-hidden rounded-xl px-4 py-2.5 text-sm font-mono font-bold text-[#141418]"
                         autoComplete="off"
                       />
                     </div>
                   </div>
 
-                  <div className="pt-2 border-t border-[#669BBC]/70 flex justify-between items-center text-xs text-neutral-700">
+                  <div className="pt-2 border-t border-[#b5bec6]/70 flex justify-between items-center text-xs text-neutral-700">
                     <span className="font-bold">Total Tarjetas Tickets:</span>
-                    <span className="font-mono font-extrabold text-[#003049] bg-white border border-[#669BBC] px-2 py-1 rounded">
+                    <span className="font-mono font-extrabold text-[#141418] bg-white border border-[#b5bec6] px-2 py-1 rounded">
                       {formatMXN(results.tarjetasTicket)}
                     </span>
                   </div>
                 </div>
 
                 {/* Right block - terminal calculations */}
-                <div className="bg-[#FDF0D5] border border-[#669BBC] p-5 rounded-lg space-y-4">
-                  <h3 className="text-xs uppercase tracking-widest font-extrabold text-[#003049] border-b border-[#669BBC] pb-2 flex items-center justify-between">
+                <div className="bg-[#edf4ee] border border-[#b5bec6] p-5 rounded-lg space-y-4">
+                  <h3 className="text-xs uppercase tracking-widest font-extrabold text-[#141418] border-b border-[#b5bec6] pb-2 flex items-center justify-between">
                     <span>2. Terminales Bancarias</span>
                     <span className="font-mono text-neutral-600 text-[10px] font-bold">Cierres</span>
                   </h3>
 
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-[10px] mb-1 uppercase font-bold tracking-wider text-[#669BBC]/80">Terminal Santander (Default)</label>
+                      <label className="block text-[10px] mb-1 uppercase font-bold tracking-wider text-[#b5bec6]/80">Terminal Santander (Default)</label>
                       <input
                         type="number"
                         inputMode="decimal"
@@ -758,20 +758,20 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                         placeholder="0.00"
                         value={data.terminalSantander || ""}
                         onChange={(e) => setData({ ...data, terminalSantander: parseFloat(e.target.value) || 0 })}
-                        className="w-full bg-white border border-[#669BBC] focus:border-[#C1121F] focus:outline-hidden rounded-xl px-4 py-2.5 text-sm font-mono font-bold text-[#003049]"
+                        className="w-full bg-white border border-[#b5bec6] focus:border-[#C1121F] focus:outline-hidden rounded-xl px-4 py-2.5 text-sm font-mono font-bold text-[#141418]"
                         autoComplete="off"
                       />
                     </div>
 
                     {/* Rendering other terminals if added */}
                     {data.otrasTerminales.length > 0 && (
-                      <div className="border-t border-dotted border-[#669BBC] pt-2 space-y-2">
-                        <p className="text-[10px] uppercase tracking-wider text-[#669BBC]/80 font-bold">Otras Terminales Adicionales:</p>
+                      <div className="border-t border-dotted border-[#b5bec6] pt-2 space-y-2">
+                        <p className="text-[10px] uppercase tracking-wider text-[#b5bec6]/80 font-bold">Otras Terminales Adicionales:</p>
                         {data.otrasTerminales.map(col => (
-                          <div key={col.id} className="flex justify-between items-center bg-white p-2 border border-[#669BBC] rounded-xl shadow-3xs">
-                            <div className="text-xs text-[#003049] font-sans">
+                          <div key={col.id} className="flex justify-between items-center bg-white p-2 border border-[#b5bec6] rounded-xl shadow-3xs">
+                            <div className="text-xs text-[#141418] font-sans">
                               <span className="font-bold">{col.name}:</span>
-                              <span className="font-mono ml-1 font-extrabold text-[#669BBC]">{formatMXN(col.amount)}</span>
+                              <span className="font-mono ml-1 font-extrabold text-[#b5bec6]">{formatMXN(col.amount)}</span>
                             </div>
                             <button
                               type="button"
@@ -787,15 +787,15 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                     )}
 
                     {/* Add other terminal form */}
-                    <div className="bg-white border border-[#669BBC] rounded-xl p-3 space-y-2">
-                      <p className="text-[10px] font-extrabold tracking-wider text-[#003049] uppercase">Añadir otra terminal:</p>
+                    <div className="bg-white border border-[#b5bec6] rounded-xl p-3 space-y-2">
+                      <p className="text-[10px] font-extrabold tracking-wider text-[#141418] uppercase">Añadir otra terminal:</p>
                       <div className="grid grid-cols-2 gap-2">
                         <input
                           type="text"
                           placeholder="Nombre (ej. Clip, Banorte)"
                           value={newTerminalName}
                           onChange={(e) => setNewTerminalName(e.target.value)}
-                          className="border border-[#669BBC] text-xs rounded-lg px-2.5 py-1.5 focus:outline-[#C1121F] font-sans font-medium"
+                          className="border border-[#b5bec6] text-xs rounded-lg px-2.5 py-1.5 focus:outline-[#C1121F] font-sans font-medium"
                           autoComplete="off"
                           autoCorrect="off"
                           autoCapitalize="off"
@@ -809,7 +809,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                           placeholder="Monto ($)"
                           value={newTerminalAmount}
                           onChange={(e) => setNewTerminalAmount(e.target.value)}
-                          className="border border-[#669BBC] text-xs rounded-lg px-2.5 py-1.5 focus:outline-[#C1121F] font-mono font-bold"
+                          className="border border-[#b5bec6] text-xs rounded-lg px-2.5 py-1.5 focus:outline-[#C1121F] font-mono font-bold"
                           autoComplete="off"
                         />
                       </div>
@@ -826,16 +826,16 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                           setNewTerminalName("");
                           setNewTerminalAmount("");
                         }}
-                        className="w-full bg-[#C1121F] hover:bg-[#003049] text-white rounded-lg py-1.5 text-[10px] font-extrabold uppercase tracking-widest cursor-pointer transition-colors"
+                        className="w-full bg-[#C1121F] hover:bg-[#141418] text-white rounded-lg py-1.5 text-[10px] font-extrabold uppercase tracking-widest cursor-pointer transition-colors"
                       >
                         + Agregar Terminal
                       </button>
                     </div>
                   </div>
 
-                  <div className="pt-2 border-t border-[#669BBC]/70 flex justify-between items-center text-xs text-neutral-700">
+                  <div className="pt-2 border-t border-[#b5bec6]/70 flex justify-between items-center text-xs text-neutral-700">
                     <span className="font-bold">Total Terminales:</span>
-                    <span className="font-mono font-extrabold text-[#003049] bg-white border border-[#669BBC] px-2 py-1 rounded">
+                    <span className="font-mono font-extrabold text-[#141418] bg-white border border-[#b5bec6] px-2 py-1 rounded">
                       {formatMXN(results.totalTerminales)}
                     </span>
                   </div>
@@ -880,7 +880,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                         placeholder="Describa el motivo del descuadre (ej. Cobro duplicado, error de digitación, voucher cancelado...)"
                         value={data.tarjetaObservaciones}
                         onChange={(e) => setData({ ...data, tarjetaObservaciones: e.target.value })}
-                        className="w-full bg-[#FDF0D5] border border-[#669BBC] focus:outline-[#107C41] rounded-xl px-3 py-2 text-xs text-neutral-800 font-sans font-semibold"
+                        className="w-full bg-[#edf4ee] border border-[#b5bec6] focus:outline-[#107C41] rounded-xl px-3 py-2 text-xs text-neutral-800 font-sans font-semibold"
                         autoComplete="off"
                         autoCorrect="off"
                         autoCapitalize="off"
@@ -914,7 +914,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                         placeholder="Describa el motivo del descuadre (ej. Cobro duplicado, error de digitación, voucher cancelado...)"
                         value={data.tarjetaObservaciones}
                         onChange={(e) => setData({ ...data, tarjetaObservaciones: e.target.value })}
-                        className="w-full bg-[#FDF0D5] border border-[#669BBC] focus:outline-[#C1121F] rounded-xl px-3 py-2 text-xs text-neutral-800 font-sans font-semibold"
+                        className="w-full bg-[#edf4ee] border border-[#b5bec6] focus:outline-[#C1121F] rounded-xl px-3 py-2 text-xs text-neutral-800 font-sans font-semibold"
                         autoComplete="off"
                         autoCorrect="off"
                         autoCapitalize="off"
@@ -930,14 +930,14 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                 <button
                   type="button"
                   onClick={() => setCurrentStep(1)}
-                  className="bg-[#FDF0D5] hover:bg-[#669BBC] text-neutral-700 py-3 px-6 rounded-xl text-xs uppercase font-sans tracking-widest font-extrabold transition-all cursor-pointer min-h-[44px]"
+                  className="bg-[#edf4ee] hover:bg-[#b5bec6] text-neutral-700 py-3 px-6 rounded-xl text-xs uppercase font-sans tracking-widest font-extrabold transition-all cursor-pointer min-h-[44px]"
                 >
                   Regresar
                 </button>
                 <button
                   type="button"
                   onClick={() => setCurrentStep(3)}
-                  className="bg-[#003049] hover:bg-[#669BBC] active:scale-[0.99] text-white py-3 px-8 rounded-xl text-xs uppercase font-sans tracking-widest font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
+                  className="bg-[#141418] hover:bg-[#b5bec6] active:scale-[0.99] text-white py-3 px-8 rounded-xl text-xs uppercase font-sans tracking-widest font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
                 >
                   <span>Siguiente: Datos de Efectivo</span>
                   <ArrowRight className="w-4 h-4" />
@@ -957,11 +957,11 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
               className="space-y-6"
             >
               <div>
-                <h2 className="font-serif text-2xl text-[#003049] font-extrabold flex items-center gap-2">
-                  <DollarSign className="w-6 h-6 text-[#669BBC]" />
+                <h2 className="font-serif text-2xl text-[#141418] font-extrabold flex items-center gap-2">
+                  <DollarSign className="w-6 h-6 text-[#b5bec6]" />
                   <span>Datos del Efectivo, Gastos y Cancelaciones</span>
                 </h2>
-                <p className="text-sm text-[#669BBC]/80 mt-1 font-sans">
+                <p className="text-sm text-[#b5bec6]/80 mt-1 font-sans">
                   Ingrese las ventas en físico del cajón, indique fondos iniciales de cambio, deducciones de gastos de proveedores, consumos internos, y tickets cancelados o devoluciones para calcular el efectivo esperado.
                 </p>
               </div>
@@ -969,8 +969,8 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                 
                 {/* Inputs for Cash flow */}
-                <div className="bg-[#FDF0D5] border border-[#669BBC] p-5 rounded-lg space-y-4">
-                  <h3 className="text-xs uppercase tracking-widest font-extrabold text-[#003049] border-b border-[#669BBC] pb-2">
+                <div className="bg-[#edf4ee] border border-[#b5bec6] p-5 rounded-lg space-y-4">
+                  <h3 className="text-xs uppercase tracking-widest font-extrabold text-[#141418] border-b border-[#b5bec6] pb-2">
                     Operación de Efectivo
                   </h3>
 
@@ -980,7 +980,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                     <div>
                       <label className="block text-[11px] uppercase font-bold tracking-wider text-neutral-600 mb-1 flex justify-between">
                         <span>Ventas en Efectivo</span>
-                        <span className="text-[9px] text-[#669BBC] lowercase uppercase italic font-black bg-white border border-[#669BBC] px-2 py-0.5 rounded">Requerido</span>
+                        <span className="text-[9px] text-[#b5bec6] lowercase uppercase italic font-black bg-white border border-[#b5bec6] px-2 py-0.5 rounded">Requerido</span>
                       </label>
                       <div className="relative">
                         <span className="absolute inset-y-0 left-0 pl-3 flex items-center font-mono text-neutral-400 text-sm">$</span>
@@ -992,7 +992,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                           placeholder="Monto total del reporte de ventas"
                           value={data.ventasEfectivoManual || ""}
                           onChange={(e) => setData({ ...data, ventasEfectivoManual: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-white border border-[#669BBC] focus:border-[#C1121F] focus:outline-hidden rounded-xl pl-8 pr-4 py-2.5 text-sm font-mono font-bold text-[#003049]"
+                          className="w-full bg-white border border-[#b5bec6] focus:border-[#C1121F] focus:outline-hidden rounded-xl pl-8 pr-4 py-2.5 text-sm font-mono font-bold text-[#141418]"
                           autoComplete="off"
                         />
                       </div>
@@ -1011,7 +1011,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                           placeholder="0.00"
                           value={data.entradasEfectivo || ""}
                           onChange={(e) => setData({ ...data, entradasEfectivo: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-white border border-[#669BBC] focus:border-[#C1121F] focus:outline-hidden rounded-xl pl-8 pr-4 py-2.5 text-sm font-mono font-bold text-[#003049]"
+                          className="w-full bg-white border border-[#b5bec6] focus:border-[#C1121F] focus:outline-hidden rounded-xl pl-8 pr-4 py-2.5 text-sm font-mono font-bold text-[#141418]"
                           autoComplete="off"
                         />
                       </div>
@@ -1030,7 +1030,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                           placeholder="0.00"
                           value={data.salidasEfectivo || ""}
                           onChange={(e) => setData({ ...data, salidasEfectivo: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-white border border-[#669BBC] focus:border-[#C1121F] focus:outline-hidden rounded-xl pl-8 pr-4 py-2.5 text-sm font-mono font-bold text-[#003049]"
+                          className="w-full bg-white border border-[#b5bec6] focus:border-[#C1121F] focus:outline-hidden rounded-xl pl-8 pr-4 py-2.5 text-sm font-mono font-bold text-[#141418]"
                           autoComplete="off"
                         />
                       </div>
@@ -1043,22 +1043,22 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                 <div className="space-y-6">
                   
                   {/* Tickets de consumo dinámicos */}
-                  <div className="bg-[#FDF0D5] border border-[#669BBC] p-5 rounded-lg space-y-4">
-                    <h3 className="text-xs uppercase tracking-widest font-extrabold text-[#003049] border-b border-[#669BBC] pb-2 flex justify-between items-center">
+                  <div className="bg-[#edf4ee] border border-[#b5bec6] p-5 rounded-lg space-y-4">
+                    <h3 className="text-xs uppercase tracking-widest font-extrabold text-[#141418] border-b border-[#b5bec6] pb-2 flex justify-between items-center">
                       <span>Vales o Consumos Internos</span>
-                      <span className="font-mono text-[#669BBC] text-xs font-bold">Suma: {formatMXN(results.totalTicketsConsumo)}</span>
+                      <span className="font-mono text-[#b5bec6] text-xs font-bold">Suma: {formatMXN(results.totalTicketsConsumo)}</span>
                     </h3>
 
                     {data.ticketsConsumo.length === 0 ? (
-                      <div className="text-center py-4 border border-dashed border-[#669BBC] rounded-xl bg-white">
+                      <div className="text-center py-4 border border-dashed border-[#b5bec6] rounded-xl bg-white">
                         <p className="text-xs text-neutral-400 font-sans italic font-semibold">No se reportaron consumos internos.</p>
                       </div>
                     ) : (
                       <div className="space-y-3 max-h-[160px] overflow-y-auto pr-1">
                         {data.ticketsConsumo.map((ticket, idx) => (
-                          <div key={ticket.id} className="bg-white border border-[#669BBC] p-3 rounded-xl space-y-2 relative shadow-3xs">
+                          <div key={ticket.id} className="bg-white border border-[#b5bec6] p-3 rounded-xl space-y-2 relative shadow-3xs">
                             <div className="flex justify-between items-center">
-                              <span className="text-[10px] font-extrabold text-[#669BBC] uppercase tracking-wider">Consumo {idx + 1}</span>
+                              <span className="text-[10px] font-extrabold text-[#b5bec6] uppercase tracking-wider">Consumo {idx + 1}</span>
                               <button
                                 type="button"
                                 onClick={() => handleDeleteTicketConsumo(ticket.id)}
@@ -1074,7 +1074,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                                 placeholder="Descripción"
                                 value={ticket.description}
                                 onChange={(e) => handleUpdateTicketConsumo(ticket.id, 'description', e.target.value)}
-                                className="border border-[#669BBC] text-xs rounded-lg px-2 py-1.5 focus:outline-[#C1121F] font-sans font-medium text-[#003049]"
+                                className="border border-[#b5bec6] text-xs rounded-lg px-2 py-1.5 focus:outline-[#C1121F] font-sans font-medium text-[#141418]"
                                 autoComplete="off"
                                 autoCorrect="off"
                                 autoCapitalize="off"
@@ -1090,7 +1090,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                                   placeholder="Monto"
                                   value={ticket.amount || ""}
                                   onChange={(e) => handleUpdateTicketConsumo(ticket.id, 'amount', e.target.value)}
-                                  className="w-full border border-[#669BBC] text-xs rounded-lg pl-5 pr-2 py-1.5 focus:outline-[#C1121F] font-mono font-bold text-[#003049]"
+                                  className="w-full border border-[#b5bec6] text-xs rounded-lg pl-5 pr-2 py-1.5 focus:outline-[#C1121F] font-mono font-bold text-[#141418]"
                                   autoComplete="off"
                                 />
                               </div>
@@ -1103,7 +1103,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                     <button
                       type="button"
                       onClick={handleAddTicketConsumo}
-                      className="w-full bg-[#669BBC]/15 hover:bg-[#669BBC]/25 text-[#669BBC] border border-dashed border-[#669BBC]/40 rounded-xl py-2.5 text-xs font-sans font-extrabold uppercase tracking-widest transition flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="w-full bg-[#b5bec6]/15 hover:bg-[#b5bec6]/25 text-[#b5bec6] border border-dashed border-[#b5bec6]/40 rounded-xl py-2.5 text-xs font-sans font-extrabold uppercase tracking-widest transition flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <Plus className="w-4 h-4" />
                       <span>Agregar Vale de Consumo</span>
@@ -1111,22 +1111,22 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                   </div>
 
                   {/* AJUSTES DEL TURNO */}
-                  <div className="bg-[#FDF0D5] border border-[#669BBC] p-5 rounded-lg space-y-4">
-                    <h3 className="text-xs uppercase tracking-widest font-extrabold text-[#003049] border-b border-[#669BBC] pb-2 flex justify-between items-center">
+                  <div className="bg-[#edf4ee] border border-[#b5bec6] p-5 rounded-lg space-y-4">
+                    <h3 className="text-xs uppercase tracking-widest font-extrabold text-[#141418] border-b border-[#b5bec6] pb-2 flex justify-between items-center">
                       <span>Ajustes del Turno</span>
-                      <span className="font-mono text-[#669BBC] text-xs font-bold font-mono">Neto: {results.totalAjustesTurno >= 0 ? "+" : ""}{formatMXN(results.totalAjustesTurno)}</span>
+                      <span className="font-mono text-[#b5bec6] text-xs font-bold font-mono">Neto: {results.totalAjustesTurno >= 0 ? "+" : ""}{formatMXN(results.totalAjustesTurno)}</span>
                     </h3>
 
                     {(data.ajustesTurno || []).length === 0 ? (
-                      <div className="text-center py-4 border border-dashed border-[#669BBC] rounded-xl bg-white">
+                      <div className="text-center py-4 border border-dashed border-[#b5bec6] rounded-xl bg-white">
                         <p className="text-xs text-neutral-400 font-sans italic font-semibold">No se reportaron ajustes del turno.</p>
                       </div>
                     ) : (
                       <div className="space-y-3 max-h-[190px] overflow-y-auto pr-1">
                         {(data.ajustesTurno || []).map((ajuste, idx) => (
-                          <div key={ajuste.id} className="bg-white border border-[#669BBC] p-3 rounded-xl space-y-2 relative shadow-3xs">
+                          <div key={ajuste.id} className="bg-white border border-[#b5bec6] p-3 rounded-xl space-y-2 relative shadow-3xs">
                             <div className="flex justify-between items-center">
-                              <span className="text-[10px] font-extrabold text-[#669BBC] uppercase tracking-wider">Ajuste {idx + 1}</span>
+                              <span className="text-[10px] font-extrabold text-[#b5bec6] uppercase tracking-wider">Ajuste {idx + 1}</span>
                               <button
                                 type="button"
                                 onClick={() => handleDeleteAjusteTurno(ajuste.id)}
@@ -1142,7 +1142,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                                 placeholder="Descripción (ej. Cancelación, Devolución, Error pago...)"
                                 value={ajuste.description}
                                 onChange={(e) => handleUpdateAjusteTurno(ajuste.id, 'description', e.target.value)}
-                                className="border border-[#669BBC] text-xs rounded-lg px-2 py-1.5 focus:outline-[#C1121F] font-sans font-medium text-[#003049]"
+                                className="border border-[#b5bec6] text-xs rounded-lg px-2 py-1.5 focus:outline-[#C1121F] font-sans font-medium text-[#141418]"
                                 autoComplete="off"
                                 autoCorrect="off"
                                 autoCapitalize="off"
@@ -1159,14 +1159,14 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                                     placeholder="Monto"
                                     value={ajuste.amount || ""}
                                     onChange={(e) => handleUpdateAjusteTurno(ajuste.id, 'amount', e.target.value)}
-                                    className="w-full border border-[#669BBC] text-xs rounded-lg pl-5 pr-2 py-1.5 focus:outline-[#C1121F] font-mono font-bold text-[#003049]"
+                                    className="w-full border border-[#b5bec6] text-xs rounded-lg pl-5 pr-2 py-1.5 focus:outline-[#C1121F] font-mono font-bold text-[#141418]"
                                     autoComplete="off"
                                   />
                                 </div>
                                 <select
                                   value={ajuste.type}
                                   onChange={(e) => handleUpdateAjusteTurno(ajuste.id, 'type', e.target.value)}
-                                  className="border border-[#669BBC] text-xs rounded-lg px-2 py-1.5 focus:outline-[#C1121F] font-sans font-bold text-[#003049] bg-white cursor-pointer"
+                                  className="border border-[#b5bec6] text-xs rounded-lg px-2 py-1.5 focus:outline-[#C1121F] font-sans font-bold text-[#141418] bg-white cursor-pointer"
                                 >
                                   <option value="restar">(-) Restar</option>
                                   <option value="sumar">(+) Sumar</option>
@@ -1192,16 +1192,16 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
               </div>
 
               {/* Math calculation display step by step - Non-pastel cool executive layout */}
-              <div className="bg-[#FDF0D5] border border-[#669BBC] rounded-lg p-5 space-y-3">
-                <h4 className="text-[10px] uppercase font-extrabold tracking-widest text-[#003049]">Fórmula y desglose de efectivo esperado:</h4>
+              <div className="bg-[#edf4ee] border border-[#b5bec6] rounded-lg p-5 space-y-3">
+                <h4 className="text-[10px] uppercase font-extrabold tracking-widest text-[#141418]">Fórmula y desglose de efectivo esperado:</h4>
                 <div className="space-y-1.5 text-xs font-sans text-neutral-700 font-semibold">
                   <div className="flex justify-between">
                     <span>(+) Ventas en efectivo de tu turno:</span>
-                    <span className="font-mono text-[#003049] font-bold">{formatMXN(data.ventasEfectivoManual)}</span>
+                    <span className="font-mono text-[#141418] font-bold">{formatMXN(data.ventasEfectivoManual)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>(+) Entradas de efectivo (Fondo / Otros):</span>
-                    <span className="font-mono text-[#003049] font-bold">{formatMXN(data.entradasEfectivo)}</span>
+                    <span className="font-mono text-[#141418] font-bold">{formatMXN(data.entradasEfectivo)}</span>
                   </div>
                   <div className="flex justify-between text-[#780000]">
                     <span>(-) Salidas de efectivo (Retiros / Pagos):</span>
@@ -1218,9 +1218,9 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                       {formatMXN(Math.abs(results.totalAjustesTurno))}
                     </span>
                   </div>
-                  <div className="flex justify-between text-[#003049] border-t border-[#669BBC] pt-2.5 font-extrabold text-sm select-none">
+                  <div className="flex justify-between text-[#141418] border-t border-[#b5bec6] pt-2.5 font-extrabold text-sm select-none">
                     <span>(=) Efectivo Neto Esperado:</span>
-                    <span className="font-mono text-[#669BBC] font-black">{formatMXN(results.efectivoEsperado)}</span>
+                    <span className="font-mono text-[#b5bec6] font-black">{formatMXN(results.efectivoEsperado)}</span>
                   </div>
                 </div>
               </div>
@@ -1230,14 +1230,14 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                 <button
                   type="button"
                   onClick={() => setCurrentStep(2)}
-                  className="bg-[#FDF0D5] hover:bg-[#669BBC] text-neutral-700 py-3 px-6 rounded-xl text-xs uppercase font-sans tracking-widest font-extrabold transition-all cursor-pointer min-h-[44px]"
+                  className="bg-[#edf4ee] hover:bg-[#b5bec6] text-neutral-700 py-3 px-6 rounded-xl text-xs uppercase font-sans tracking-widest font-extrabold transition-all cursor-pointer min-h-[44px]"
                 >
                   Regresar
                 </button>
                 <button
                   type="button"
                   onClick={() => setCurrentStep(4)}
-                  className="bg-[#003049] hover:bg-[#669BBC] active:scale-[0.99] text-white py-3 px-8 rounded-xl text-xs uppercase font-sans tracking-widest font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
+                  className="bg-[#141418] hover:bg-[#b5bec6] active:scale-[0.99] text-white py-3 px-8 rounded-xl text-xs uppercase font-sans tracking-widest font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
                 >
                   <span>Siguiente: Conteo Físico</span>
                   <ArrowRight className="w-4 h-4" />
@@ -1257,31 +1257,31 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
               className="space-y-8"
             >
               <div>
-                <h2 className="font-serif text-2xl text-[#003049] font-extrabold flex items-center gap-2">
-                  <Coins className="w-6 h-6 text-[#669BBC]" />
+                <h2 className="font-serif text-2xl text-[#141418] font-extrabold flex items-center gap-2">
+                  <Coins className="w-6 h-6 text-[#b5bec6]" />
                   <span>Arqueo de Conteo Físico</span>
                 </h2>
-                <p className="text-sm text-[#669BBC]/80 mt-1 font-sans">
+                <p className="text-sm text-[#b5bec6]/80 mt-1 font-sans">
                   Sume y declare las cantidades físicas de billetes, monedas y dólares en tu caja para balancearlo contra el efectivo esperado en tiempo real.
                 </p>
               </div>
 
               {/* Real-time subtotal indicators banner (Navy & petrol theme) */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-[#FDF0D5] border border-[#669BBC] p-4 rounded-lg">
-                <div className="bg-white border border-[#669BBC] p-3 rounded-xl text-center shadow-3xs">
-                  <span className="text-[9px] uppercase tracking-wider font-extrabold text-[#669BBC]/80 block mb-0.5">Billetes (MXN)</span>
-                  <span className="font-mono text-xs font-bold text-[#003049]">{formatMXN(results.subtotalBilletes)}</span>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-[#edf4ee] border border-[#b5bec6] p-4 rounded-lg">
+                <div className="bg-white border border-[#b5bec6] p-3 rounded-xl text-center shadow-3xs">
+                  <span className="text-[9px] uppercase tracking-wider font-extrabold text-[#b5bec6]/80 block mb-0.5">Billetes (MXN)</span>
+                  <span className="font-mono text-xs font-bold text-[#141418]">{formatMXN(results.subtotalBilletes)}</span>
                 </div>
-                <div className="bg-white border border-[#669BBC] p-3 rounded-xl text-center shadow-3xs">
-                  <span className="text-[9px] uppercase tracking-wider font-extrabold text-[#669BBC]/80 block mb-0.5">Monedas (MXN)</span>
-                  <span className="font-mono text-xs font-bold text-[#003049]">{formatMXN(results.subtotalMonedas)}</span>
+                <div className="bg-white border border-[#b5bec6] p-3 rounded-xl text-center shadow-3xs">
+                  <span className="text-[9px] uppercase tracking-wider font-extrabold text-[#b5bec6]/80 block mb-0.5">Monedas (MXN)</span>
+                  <span className="font-mono text-xs font-bold text-[#141418]">{formatMXN(results.subtotalMonedas)}</span>
                 </div>
-                <div className="bg-white border border-[#669BBC] p-3 rounded-xl text-center shadow-3xs">
-                  <span className="text-[9px] uppercase tracking-wider font-extrabold text-[#669BBC]/80 block mb-0.5">Dólares (MXN)</span>
-                  <span className="font-mono text-xs font-bold text-[#003049]">{formatMXN(results.subtotalDolares)}</span>
+                <div className="bg-white border border-[#b5bec6] p-3 rounded-xl text-center shadow-3xs">
+                  <span className="text-[9px] uppercase tracking-wider font-extrabold text-[#b5bec6]/80 block mb-0.5">Dólares (MXN)</span>
+                  <span className="font-mono text-xs font-bold text-[#141418]">{formatMXN(results.subtotalDolares)}</span>
                 </div>
                 <div className="bg-[#C1121F] text-white p-3 rounded-xl text-center shadow-xs">
-                  <span className="text-[9px] uppercase tracking-wider font-extrabold text-[#FDF0D5] block mb-0.5">Total Físico Contado</span>
+                  <span className="text-[9px] uppercase tracking-wider font-extrabold text-[#edf4ee] block mb-0.5">Total Físico Contado</span>
                   <span className="font-mono text-sm font-extrabold text-white">{formatMXN(results.efectivoContado)}</span>
                 </div>
               </div>
@@ -1291,7 +1291,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                 
                 {/* Billetes column */}
                 <div className="space-y-4">
-                  <h3 className="text-xs uppercase tracking-widest font-extrabold text-[#669BBC] border-b border-[#669BBC] pb-2">
+                  <h3 className="text-xs uppercase tracking-widest font-extrabold text-[#b5bec6] border-b border-[#b5bec6] pb-2">
                     Billetes MXN
                   </h3>
 
@@ -1301,14 +1301,14 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                       const sub = denom * count;
 
                       return (
-                        <div key={denom} className="flex justify-between items-center bg-[#FDF0D5] px-3 py-2 rounded-xl border border-[#669BBC]/60 shadow-3xs">
-                          <span className="text-xs font-bold text-[#003049] min-w-[70px]">${denom} pesos</span>
+                        <div key={denom} className="flex justify-between items-center bg-[#edf4ee] px-3 py-2 rounded-xl border border-[#b5bec6]/60 shadow-3xs">
+                          <span className="text-xs font-bold text-[#141418] min-w-[70px]">${denom} pesos</span>
                           
                           <div className="flex items-center gap-2">
                             <button
                               type="button"
                               onClick={() => adjustConteo(denom, -1)}
-                              className="w-9 h-9 rounded-lg bg-white border border-[#669BBC] hover:bg-neutral-100 text-neutral-600 flex items-center justify-center font-bold text-lg select-none cursor-pointer active:scale-95 transition-all text-center"
+                              className="w-9 h-9 rounded-lg bg-white border border-[#b5bec6] hover:bg-neutral-100 text-neutral-600 flex items-center justify-center font-bold text-lg select-none cursor-pointer active:scale-95 transition-all text-center"
                             >
                               -
                             </button>
@@ -1320,13 +1320,13 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                               value={count === 0 ? "" : count}
                               placeholder="0"
                               onChange={(e) => setDirectConteo(denom, e.target.value)}
-                              className="w-14 bg-white border border-[#669BBC] focus:border-[#C1121F] focus:outline-hidden text-center rounded-lg py-2 text-xs font-mono font-bold text-[#003049]"
+                              className="w-14 bg-white border border-[#b5bec6] focus:border-[#C1121F] focus:outline-hidden text-center rounded-lg py-2 text-xs font-mono font-bold text-[#141418]"
                               autoComplete="off"
                             />
                             <button
                               type="button"
                               onClick={() => adjustConteo(denom, 1)}
-                              className="w-9 h-9 rounded-lg bg-[#C1121F] hover:bg-[#003049] text-white flex items-center justify-center font-bold text-lg select-none cursor-pointer active:scale-95 transition-all text-center"
+                              className="w-9 h-9 rounded-lg bg-[#C1121F] hover:bg-[#141418] text-white flex items-center justify-center font-bold text-lg select-none cursor-pointer active:scale-95 transition-all text-center"
                             >
                               +
                             </button>
@@ -1346,26 +1346,26 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                   
                   {/* Monedas subpart */}
                   <div className="space-y-4">
-                    <h3 className="text-xs uppercase tracking-widest font-extrabold text-[#669BBC] border-b border-[#669BBC] pb-2">
+                    <h3 className="text-xs uppercase tracking-widest font-extrabold text-[#b5bec6] border-b border-[#b5bec6] pb-2">
                       Monedas MXN
                     </h3>
 
-                    <div className="flex gap-1 border border-[#669BBC] rounded-lg p-1" role="group" aria-label="Modo de conteo de monedas">
+                    <div className="flex gap-1 border border-[#b5bec6] rounded-lg p-1" role="group" aria-label="Modo de conteo de monedas">
                       {(["desglose", "total"] as const).map(mode => (
                         <button type="button" key={mode} aria-pressed={(data.modoMonedas || "desglose") === mode}
                           onClick={() => setData(prev => ({ ...prev, modoMonedas: mode }))}
-                          className={`flex-1 min-h-10 rounded px-2 text-xs font-bold cursor-pointer ${(data.modoMonedas || "desglose") === mode ? "bg-[#003049] text-white" : "text-[#003049]"}`}>
+                          className={`flex-1 min-h-10 rounded px-2 text-xs font-bold cursor-pointer ${(data.modoMonedas || "desglose") === mode ? "bg-[#141418] text-white" : "text-[#141418]"}`}>
                           {mode === "desglose" ? "Por denominación" : "Total de monedas"}
                         </button>
                       ))}
                     </div>
                     {data.modoMonedas === "total" ? (
-                      <label className="block text-xs font-bold text-[#003049]">
+                      <label className="block text-xs font-bold text-[#141418]">
                         Total de monedas (MXN)
                         <input type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00"
                           value={data.totalMonedasManual || ""}
                           onChange={e => setData(prev => ({ ...prev, totalMonedasManual: Math.max(0, parseFloat(e.target.value) || 0) }))}
-                          className="mt-2 w-full border border-[#669BBC] rounded-lg bg-white px-3 py-3 text-base font-mono" />
+                          className="mt-2 w-full border border-[#b5bec6] rounded-lg bg-white px-3 py-3 text-base font-mono" />
                       </label>
                     ) : (
                     <div className="space-y-2">
@@ -1381,14 +1381,14 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                         const sub = item.v * count;
 
                         return (
-                          <div key={item.k} className="flex justify-between items-center bg-[#FDF0D5] px-3 py-1.5 rounded-xl border border-[#669BBC]/60 shadow-3xs">
-                            <span className="text-xs font-bold text-[#003049] min-w-[70px]">{item.label} pesos</span>
+                          <div key={item.k} className="flex justify-between items-center bg-[#edf4ee] px-3 py-1.5 rounded-xl border border-[#b5bec6]/60 shadow-3xs">
+                            <span className="text-xs font-bold text-[#141418] min-w-[70px]">{item.label} pesos</span>
                             
                             <div className="flex items-center gap-1.5 font-sans">
                               <button
                                 type="button"
                                 onClick={() => adjustConteo(item.k, -1)}
-                                className="w-8 h-8 rounded-lg bg-white border border-[#669BBC] hover:bg-neutral-100 text-[#003049] flex items-center justify-center font-bold text-md select-none cursor-pointer active:scale-95 transition-all text-center"
+                                className="w-8 h-8 rounded-lg bg-white border border-[#b5bec6] hover:bg-neutral-100 text-[#141418] flex items-center justify-center font-bold text-md select-none cursor-pointer active:scale-95 transition-all text-center"
                               >
                                 -
                               </button>
@@ -1400,13 +1400,13 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                                 value={count === 0 ? "" : count}
                                 placeholder="0"
                                 onChange={(e) => setDirectConteo(item.k, e.target.value)}
-                                className="w-12 bg-white border border-[#669BBC] focus:border-[#C1121F] focus:outline-hidden text-center rounded-lg py-1.5 text-xs font-mono font-bold text-[#003049]"
+                                className="w-12 bg-white border border-[#b5bec6] focus:border-[#C1121F] focus:outline-hidden text-center rounded-lg py-1.5 text-xs font-mono font-bold text-[#141418]"
                                 autoComplete="off"
                               />
                               <button
                                 type="button"
                                 onClick={() => adjustConteo(item.k, 1)}
-                                className="w-8 h-8 rounded-lg bg-[#C1121F] hover:bg-[#003049] text-white flex items-center justify-center font-bold text-md select-none cursor-pointer active:scale-95 transition-all text-center"
+                                className="w-8 h-8 rounded-lg bg-[#C1121F] hover:bg-[#141418] text-white flex items-center justify-center font-bold text-md select-none cursor-pointer active:scale-95 transition-all text-center"
                               >
                                 +
                               </button>
@@ -1422,10 +1422,10 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                   </div>
 
                   {/* Dólares subpart */}
-                  <div className="bg-[#FDF0D5] border border-[#669BBC] p-4 rounded-lg space-y-3">
-                    <h4 className="text-xs uppercase tracking-widest font-extrabold text-[#669BBC] border-b border-[#669BBC] pb-1.5 flex justify-between items-center">
+                  <div className="bg-[#edf4ee] border border-[#b5bec6] p-4 rounded-lg space-y-3">
+                    <h4 className="text-xs uppercase tracking-widest font-extrabold text-[#b5bec6] border-b border-[#b5bec6] pb-1.5 flex justify-between items-center">
                       <span>Dólares Estadounidenses (USD)</span>
-                      <label className="flex items-center gap-1 text-[10px] text-[#669BBC]/80 font-bold">
+                      <label className="flex items-center gap-1 text-[10px] text-[#b5bec6]/80 font-bold">
                         TC: $
                         <input
                           type="number"
@@ -1434,7 +1434,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                           min="0.01"
                           value={data.tipoCambioUSD || 15}
                           onChange={(e) => setData({ ...data, tipoCambioUSD: Math.max(0.01, parseFloat(e.target.value) || 15) })}
-                          className="w-12 bg-white border border-[#669BBC] focus:border-[#C1121F] focus:outline-hidden rounded px-1 py-0.5 text-center font-mono text-[#003049]"
+                          className="w-12 bg-white border border-[#b5bec6] focus:border-[#C1121F] focus:outline-hidden rounded px-1 py-0.5 text-center font-mono text-[#141418]"
                           aria-label="Tipo de cambio de dólar a peso mexicano"
                         />
                         MXN
@@ -1443,7 +1443,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                     
                     <div className="flex gap-4 items-center">
                       <div className="flex-1">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-[#669BBC]/80 block mb-1">Dólares en Caja (USD)</label>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-[#b5bec6]/80 block mb-1">Dólares en Caja (USD)</label>
                         <input
                           type="number"
                           inputMode="decimal"
@@ -1452,21 +1452,21 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                           placeholder="0 USD"
                           value={data.dolaresConteo || ""}
                           onChange={(e) => setData({ ...data, dolaresConteo: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-white border border-[#669BBC] focus:border-[#C1121F] focus:outline-hidden rounded-xl px-3 py-2.5 text-sm font-mono font-bold text-[#003049]"
+                          className="w-full bg-white border border-[#b5bec6] focus:border-[#C1121F] focus:outline-hidden rounded-xl px-3 py-2.5 text-sm font-mono font-bold text-[#141418]"
                           autoComplete="off"
                         />
                       </div>
                       <div className="w-1/2 text-right">
                         <p className="text-[10px] text-neutral-550 font-extrabold uppercase line-clamp-1">Equivalente MXN</p>
-                        <p className="font-mono text-sm font-extrabold text-[#003049]">{formatMXN(results.subtotalDolares)}</p>
+                        <p className="font-mono text-sm font-extrabold text-[#141418]">{formatMXN(results.subtotalDolares)}</p>
                       </div>
                     </div>
                   </div>
 
                   {/* Apartados de efectivo */}
-                  <div className="bg-[#FDF0D5] border border-[#669BBC] p-4 rounded-lg space-y-4">
-                    <h4 className="text-xs uppercase tracking-widest font-extrabold text-[#669BBC] border-b border-[#669BBC] pb-1.5 flex items-center gap-2">
-                      <Coins className="w-4 h-4 text-[#669BBC]" />
+                  <div className="bg-[#edf4ee] border border-[#b5bec6] p-4 rounded-lg space-y-4">
+                    <h4 className="text-xs uppercase tracking-widest font-extrabold text-[#b5bec6] border-b border-[#b5bec6] pb-1.5 flex items-center gap-2">
+                      <Coins className="w-4 h-4 text-[#b5bec6]" />
                       <span>Apartados de Efectivo</span>
                     </h4>
                     <p className="text-[10px] text-neutral-500">Registre cada importe que permanecerá reservado en caja para el siguiente turno, proveedores o caja chica.</p>
@@ -1478,7 +1478,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                             value={apartado.description}
                             onChange={(e) => handleUpdateApartado(apartado.id, "description", e.target.value)}
                             placeholder="Motivo del apartado"
-                            className="min-w-0 bg-white border border-[#669BBC] focus:border-[#C1121F] focus:outline-hidden rounded-lg px-2.5 py-2 text-xs text-[#003049] font-medium"
+                            className="min-w-0 bg-white border border-[#b5bec6] focus:border-[#C1121F] focus:outline-hidden rounded-lg px-2.5 py-2 text-xs text-[#141418] font-medium"
                           />
                           <input
                             type="number"
@@ -1488,15 +1488,15 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                             value={apartado.amount || ""}
                             onChange={(e) => handleUpdateApartado(apartado.id, "amount", e.target.value)}
                             placeholder="Monto"
-                            className="w-full bg-white border border-[#669BBC] focus:border-[#C1121F] focus:outline-hidden rounded-lg px-2 py-2 text-xs font-mono font-bold text-[#003049]"
+                            className="w-full bg-white border border-[#b5bec6] focus:border-[#C1121F] focus:outline-hidden rounded-lg px-2 py-2 text-xs font-mono font-bold text-[#141418]"
                           />
-                          <button type="button" onClick={() => handleDeleteApartado(apartado.id)} className="p-2 text-[#780000] hover:bg-[#FDF0D5] rounded-lg cursor-pointer" title="Eliminar apartado">
+                          <button type="button" onClick={() => handleDeleteApartado(apartado.id)} className="p-2 text-[#780000] hover:bg-[#edf4ee] rounded-lg cursor-pointer" title="Eliminar apartado">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       ))}
                     </div>
-                    <button type="button" onClick={handleAddApartado} className="w-full border border-dashed border-[#669BBC] hover:bg-[#FDF0D5] text-[#003049] rounded-xl py-2 text-[10px] uppercase tracking-wider font-extrabold cursor-pointer transition-colors">
+                    <button type="button" onClick={handleAddApartado} className="w-full border border-dashed border-[#b5bec6] hover:bg-[#edf4ee] text-[#141418] rounded-xl py-2 text-[10px] uppercase tracking-wider font-extrabold cursor-pointer transition-colors">
                       + Agregar apartado
                     </button>
                   </div>
@@ -1504,19 +1504,19 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                 </div>
               </div>
 
-              <div className="flex flex-wrap justify-between gap-3 border-t border-[#669BBC] pt-5">
+              <div className="flex flex-wrap justify-between gap-3 border-t border-[#b5bec6] pt-5">
                 <button type="button" onClick={() => setCurrentStep(3)} className="px-5 py-3 text-sm font-bold">Regresar</button>
-                <button type="button" onClick={() => setCurrentStep(5)} className="flex items-center gap-2 bg-[#003049] text-white rounded-lg px-5 py-3 text-sm font-bold">Siguiente: Resumen <ArrowRight className="w-4 h-4" /></button>
+                <button type="button" onClick={() => setCurrentStep(5)} className="flex items-center gap-2 bg-[#141418] text-white rounded-lg px-5 py-3 text-sm font-bold">Siguiente: Resumen <ArrowRight className="w-4 h-4" /></button>
               </div>
             </motion.div>
           )}
           {currentStep === 5 && (
             <motion.div key="step5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-              <h2 className="text-2xl font-serif font-bold text-[#003049]">Resumen del corte</h2>
-              <div className="divide-y divide-[#669BBC]">
+              <h2 className="text-2xl font-serif font-bold text-[#141418]">Resumen del corte</h2>
+              <div className="divide-y divide-[#b5bec6]">
                 {previewSections.map(section => (
                   <section key={section.title} className="py-4">
-                    <h3 className="text-sm font-bold text-[#003049] mb-3">{section.title}</h3>
+                    <h3 className="text-sm font-bold text-[#141418] mb-3">{section.title}</h3>
                     <dl className="space-y-2 text-sm">
                       {section.rows.map(([label, value], index) => (
                         <div key={index} className="flex flex-wrap justify-between gap-x-4 gap-y-1">
@@ -1528,42 +1528,42 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                 ))}
               </div>
               {/* RESUMEN DEL ARQUEO */}
-              <div className="border-t border-[#669BBC] pt-6 space-y-4">
-                <h3 className="text-xs uppercase tracking-widest font-extrabold text-[#003049] mb-1">
+              <div className="border-t border-[#b5bec6] pt-6 space-y-4">
+                <h3 className="text-xs uppercase tracking-widest font-extrabold text-[#141418] mb-1">
                   Resumen del Arqueo
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-sans">
-                  <div className="bg-white border border-[#669BBC] p-4 rounded-lg flex flex-col justify-between shadow-3xs">
+                  <div className="bg-white border border-[#b5bec6] p-4 rounded-lg flex flex-col justify-between shadow-3xs">
                     <div>
                       <span className="text-[10px] uppercase tracking-wider font-extrabold text-neutral-500 block mb-1">Efectivo Físico Contado</span>
-                      <p className="font-mono text-lg font-black text-[#003049]">{formatMXN(results.efectivoContado)}</p>
+                      <p className="font-mono text-lg font-black text-[#141418]">{formatMXN(results.efectivoContado)}</p>
                     </div>
                     <span className="text-[10px] text-neutral-400 mt-2">Billetes + Monedas + Dólares + Apartados</span>
                   </div>
 
-                  <div className="bg-white border border-[#669BBC] p-4 rounded-lg flex flex-col justify-between shadow-3xs">
+                  <div className="bg-white border border-[#b5bec6] p-4 rounded-lg flex flex-col justify-between shadow-3xs">
                     <div>
                       <span className="text-[10px] uppercase tracking-wider font-extrabold text-neutral-500 block mb-1">Apartados en Caja</span>
-                      <p className="font-mono text-lg font-black text-[#669BBC]">{formatMXN(results.totalApartados || 0)}</p>
+                      <p className="font-mono text-lg font-black text-[#b5bec6]">{formatMXN(results.totalApartados || 0)}</p>
                     </div>
                     <span className="text-[10px] text-neutral-600 font-semibold mt-2 line-clamp-1">
                       {(data.apartadosEfectivo || []).length > 0 ? `${data.apartadosEfectivo!.length} registro(s) activo(s)` : "Sin apartados registrados"}
                     </span>
                   </div>
 
-                  <div className="bg-[#003049] text-white p-4 rounded-lg flex flex-col justify-between shadow-xs">
+                  <div className="bg-[#141418] text-white p-4 rounded-lg flex flex-col justify-between shadow-xs">
                     <div>
-                      <span className="text-[10px] uppercase tracking-wider font-extrabold text-[#FDF0D5] block mb-1">Efectivo Entregado</span>
+                      <span className="text-[10px] uppercase tracking-wider font-extrabold text-[#edf4ee] block mb-1">Efectivo Entregado</span>
                       <p className="font-mono text-lg font-black text-white">{formatMXN(results.efectivoEntregado || 0)}</p>
                     </div>
-                    <span className="text-[10px] text-[#669BBC] mt-2 font-bold">Fórmula: Contado - Apartados</span>
+                    <span className="text-[10px] text-[#b5bec6] mt-2 font-bold">Fórmula: Contado - Apartados</span>
                   </div>
                 </div>
               </div>
 
               {/* RESULTADO FINAL (Section with Solid Green, Azul, Rojo status - Purely avoiding pastel soft tones) */}
-              <div className="border-t border-[#669BBC] pt-6 space-y-4">
-                <h3 className="text-xs uppercase tracking-widest font-extrabold text-[#003049] mb-1">
+              <div className="border-t border-[#b5bec6] pt-6 space-y-4">
+                <h3 className="text-xs uppercase tracking-widest font-extrabold text-[#141418] mb-1">
                   Resultado de Auditoría de Conciliación
                 </h3>
 
@@ -1584,16 +1584,16 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                 )}
 
                 {results.statusDiferencia === 'sobrante' && (
-                  <div className="bg-white border-2 border-[#669BBC] text-[#669BBC] rounded-lg p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
+                  <div className="bg-white border-2 border-[#b5bec6] text-[#b5bec6] rounded-lg p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
                     <div className="flex gap-3.5 items-start">
-                      <AlertCircle className="w-9 h-9 text-[#669BBC] shrink-0 mt-0.5" />
+                      <AlertCircle className="w-9 h-9 text-[#b5bec6] shrink-0 mt-0.5" />
                       <div>
-                        <h4 className="font-serif font-black text-lg text-[#669BBC]">Sobrante de {formatMXN(results.diferenciaEfectivo)}</h4>
-                        <p className="text-xs text-[#669BBC] font-sans font-semibold mt-1">El conteo de caja física registra un sobrante de dinero en exceso sobre el efectivo esperado por el sistema.</p>
+                        <h4 className="font-serif font-black text-lg text-[#b5bec6]">Sobrante de {formatMXN(results.diferenciaEfectivo)}</h4>
+                        <p className="text-xs text-[#b5bec6] font-sans font-semibold mt-1">El conteo de caja física registra un sobrante de dinero en exceso sobre el efectivo esperado por el sistema.</p>
                       </div>
                     </div>
                     <div className="text-center shrink-0 bg-[#C1121F] text-white rounded-xl px-5 py-3 font-mono font-black min-w-[150px]">
-                      <span className="text-[9px] uppercase block leading-none mb-1 text-[#669BBC] font-bold">SOBRANTE</span>
+                      <span className="text-[9px] uppercase block leading-none mb-1 text-[#b5bec6] font-bold">SOBRANTE</span>
                       <span className="text-base font-extrabold">+{formatMXN(results.diferenciaEfectivo)}</span>
                     </div>
                   </div>
@@ -1616,8 +1616,8 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                 )}
               </div>
 
-              <div className="border-t border-[#669BBC] pt-6">
-                <button type="button" onClick={handleSendPDF} className="w-full flex items-center justify-center gap-2 bg-[#003049] text-white rounded-lg px-5 py-4 font-bold cursor-pointer">
+              <div className="border-t border-[#b5bec6] pt-6">
+                <button type="button" onClick={handleSendPDF} className="w-full flex items-center justify-center gap-2 bg-[#141418] text-white rounded-lg px-5 py-4 font-bold cursor-pointer">
                   <Send className="w-5 h-5" /> ENVIAR PDF
                 </button>
                 {shareError && <p role="alert" className="mt-3 text-sm text-red-700">{shareError}</p>}
@@ -1628,14 +1628,14 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                 <button
                   type="button"
                   onClick={() => setCurrentStep(4)}
-                  className="bg-[#FDF0D5] hover:bg-[#669BBC] text-neutral-700 py-3 px-6 rounded-xl text-xs uppercase font-sans tracking-widest font-extrabold transition-all cursor-pointer min-h-[44px]"
+                  className="bg-[#edf4ee] hover:bg-[#b5bec6] text-neutral-700 py-3 px-6 rounded-xl text-xs uppercase font-sans tracking-widest font-extrabold transition-all cursor-pointer min-h-[44px]"
                 >
                   Regresar
                 </button>
                 <button
                   type="button"
                   onClick={onBack}
-                  className="bg-[#003049] hover:bg-[#669BBC] active:scale-[0.99] text-white py-3 px-8 rounded-xl text-xs uppercase font-sans tracking-widest font-bold transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
+                  className="bg-[#141418] hover:bg-[#b5bec6] active:scale-[0.99] text-white py-3 px-8 rounded-xl text-xs uppercase font-sans tracking-widest font-bold transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
                 >
                   Finalizar y Cerrar Sesión
                 </button>
