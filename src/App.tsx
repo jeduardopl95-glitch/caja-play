@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
-import { ArrowUpRight, Calculator, ClipboardCheck, ReceiptText } from "lucide-react";
+import { ArrowUpRight, Calculator, CalendarClock, ClipboardCheck, ReceiptText } from "lucide-react";
 import CobroSinLuz from "./modules/cobro/CobroSinLuz";
 import CorteCaja from "./modules/corte/CorteCaja";
 import Calculadora from "./modules/precios/Calculadora";
+import Caducidades from "./modules/caducidades/Caducidades";
 import { syncSheetsInventory } from "./lib/inventorySync";
 
 const modules = [
   { id: "cobro", label: "Cobro sin luz", icon: ReceiptText },
   { id: "corte", label: "Corte de caja", icon: ClipboardCheck },
-  { id: "precios", label: "Calculadora de precios", icon: Calculator }
+  { id: "precios", label: "Calculadora de precios", icon: Calculator },
+  { id: "caducidades", label: "Caducidades", icon: CalendarClock }
 ] as const;
 type View = "inicio" | typeof modules[number]["id"];
 
@@ -53,6 +55,7 @@ export default function App() {
         {view === "cobro" && <CobroSinLuz onBack={() => navigate("inicio")} />}
         {view === "corte" && <CorteCaja onBack={() => navigate("inicio")} />}
         {view === "precios" && <Calculadora />}
+        {view === "caducidades" && <Caducidades />}
       </main>
     </div>
   );

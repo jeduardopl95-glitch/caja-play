@@ -83,6 +83,7 @@ button, h1, h2, h3, h4 { letter-spacing: 0 !important; }
 }
 .module-card[data-module="corte"] .module-art { background: #d3e8d5; color: #183d27; }
 .module-card[data-module="precios"] .module-art { background: #f8dca5; color: #492b0f; }
+.module-card[data-module="caducidades"] .module-art { background: #f1d9e0; color: #592538; }
 .module-label {
   display: flex; justify-content: space-between; align-items: center; gap: 10px;
   padding: 12px 8px 6px; font-size: 16px; font-weight: 700;
