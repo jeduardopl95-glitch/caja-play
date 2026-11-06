@@ -184,13 +184,23 @@ export function saveInventoryLocally(items: CatalogItem[], sourceName?: string):
   return label;
 }
 
-export async function syncSheetsInventory(customUrl?: string): Promise<{
+const pendingSync = new Map<string, ReturnType<typeof fetchInventory>>();
+
+export function syncSheetsInventory(customUrl?: string) {
+  const url = customUrl || SHEETS_CSV_URL;
+  const existing = pendingSync.get(url);
+  if (existing) return existing;
+  const request = fetchInventory(url).finally(() => pendingSync.delete(url));
+  pendingSync.set(url, request);
+  return request;
+}
+
+async function fetchInventory(urlToFetch: string): Promise<{
   success: boolean;
   items: CatalogItem[];
   lastSync: string | null;
   error?: string;
 }> {
-  const urlToFetch = customUrl || SHEETS_CSV_URL;
   try {
     const res = await fetch(urlToFetch, { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);

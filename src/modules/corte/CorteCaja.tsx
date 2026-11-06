@@ -6,7 +6,7 @@ import {
   Coins, CheckCircle, FileText, Send, AlertCircle, Sparkles, RefreshCw, XCircle
 } from "lucide-react";
 import { CorteCajaData, CorteCajaResult, TerminalEntry, TicketConsumo, AjusteTurno, ApartadoEfectivo } from "../../types";
-import { generateCortePDF } from "../../utils/pdf";
+
 
 interface CorteCajaProps {
   onBack: () => void;
@@ -374,14 +374,27 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
     }));
   };
 
+  const [pdfModule, setPdfModule] = useState<typeof import("../../utils/pdf") | null>(null);
+  useEffect(() => {
+    if (currentStep !== 5) return;
+    let active = true;
+    import("../../utils/pdf").then(module => {
+      if (active) setPdfModule(module);
+    }).catch(() => {
+      if (active) setShareError("No se pudo preparar el PDF. Regresa al conteo e inténtalo de nuevo.");
+    });
+    return () => { active = false; };
+  }, [currentStep]);
+
   const handleSendPDF = async () => {
+    if (!pdfModule) return;
     setShareError("");
     if (!navigator.share || !navigator.canShare) {
       setShareError("Este navegador no permite compartir archivos PDF. Abre la aplicación en un navegador compatible con compartir archivos, como Safari en iPhone o Chrome en Android.");
       return;
     }
     try {
-      const { blob } = generateCortePDF(data, results);
+      const { blob } = pdfModule.generateCortePDF(data, results);
       const file = new File([blob], `Corte_${data.sucursal.replace(/[^a-zA-Z0-9_-]/g, "_")}_${data.fecha}.pdf`, { type: "application/pdf" });
       if (!navigator.canShare({ files: [file] })) {
         setShareError("Este navegador no permite compartir este PDF. No se ha descargado ningún archivo.");
@@ -472,20 +485,20 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
   if (physicalRows.length) previewSections.push({ title: "Conteo físico", rows: physicalRows });
 
   return (
-    <div className="labs-corte max-w-4xl mx-auto px-4 py-8 relative">
+    <div className="labs-corte max-w-4xl mx-auto px-4 py-4 sm:py-8 relative">
       
       {/* Top Header Controls */}
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-3 flex flex-wrap gap-2 items-center justify-between">
         <button 
           onClick={onBack}
-          className="flex items-center gap-2 group text-[#b5bec6] hover:text-[#141418] transition-colors py-2 px-1 text-sm font-sans tracking-wide cursor-pointer font-bold"
+          className="flex items-center gap-2 group text-[#415a4b] hover:text-[#141418] transition-colors py-2 px-1 text-sm font-sans tracking-wide cursor-pointer font-bold"
         >
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
           <span>Volver al menú</span>
         </button>
         <div className="flex items-center gap-3">
           {lastSavedAt && (
-            <span className="hidden sm:flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#b5bec6]">
+            <span className="hidden sm:flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#415a4b]">
               <CheckCircle className="w-3.5 h-3.5" />
               Guardado automático
             </span>
@@ -501,65 +514,35 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
       </div>
 
       {/* Primary Titles */}
-      <div className="mb-8 text-center md:text-left">
-        <h1 className="font-serif text-3xl font-extrabold text-[#141418] tracking-tight lg:text-4xl">
+      <div className="mb-4 text-left">
+        <h1 className="font-serif text-2xl font-extrabold text-[#141418] tracking-tight lg:text-4xl">
           Cierre de Caja Diario
         </h1>
-        <p className="text-[#b5bec6]/80 font-sans text-sm mt-1 max-w-xl">
+        <p className="hidden sm:block text-[#415a4b] font-sans text-sm mt-1 max-w-xl">
           Complete el asistente paso a paso para cuadrar cobros por tarjeta, registrar flujo de efectivo y realizar el arqueo físico definitivo.
         </p>
       </div>
 
-      {/* Step Progress Indicators using beautiful dark blues */}
-      <div className="mb-8 bg-white border border-[#b5bec6] rounded-lg p-4 shadow-xs">
-        <div className="flex justify-between items-center relative gap-3 flex-col sm:flex-row">
-          {WIZARD_STEPS.map((step, idx) => {
-            const isActive = currentStep === step.step;
-            const isCompleted = currentStep > step.step;
-
-            return (
-              <React.Fragment key={step.step}>
-                <div 
-                  onClick={() => handleStepClick(step.step)}
-                  className={`w-full sm:flex-1 flex items-center gap-3.5 p-2 rounded-xl transition-all ${
-                    isActive 
-                      ? "bg-[#b5bec6]/15 border border-[#b5bec6]/40 text-[#b5bec6]" 
-                      : isCompleted
-                      ? "opacity-95 hover:bg-[#edf4ee] cursor-pointer"
-                      : "opacity-45 cursor-not-allowed"
-                  }`}
-                >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-mono text-xs font-extrabold shrink-0 ${
-                    isActive 
-                      ? "bg-[#C1121F] text-white" 
-                      : isCompleted 
-                      ? "bg-[#141418] text-white" 
-                      : "bg-[#edf4ee] text-[#b5bec6]/80"
-                  }`}>
-                    {isCompleted ? "✓" : step.step}
-                  </div>
-                  <div className="text-left">
-                    <p className={`text-[11px] uppercase tracking-wider font-extrabold ${isActive ? "text-[#b5bec6]" : "text-neutral-700"}`}>
-                      {step.label}
-                    </p>
-                    <p className="text-[10px] text-neutral-400 font-sans line-clamp-1">{step.desc}</p>
-                  </div>
-                </div>
-
-                {idx < WIZARD_STEPS.length - 1 && (
-                  <div className="hidden sm:block text-[#b5bec6]">
-                    <ArrowRight className="w-4 h-4" />
-                  </div>
-                )}
-              </React.Fragment>
-            );
-          })}
-        </div>
+      <div className="mb-4">
+        <ol aria-label="Pasos del corte" className="grid grid-cols-5 gap-2">
+          {WIZARD_STEPS.map(step => (
+            <li key={step.step}>
+              <button type="button"
+                aria-label={`Paso ${step.step}: ${step.label}`}
+                aria-current={currentStep === step.step ? "step" : undefined}
+                onClick={() => handleStepClick(step.step)}
+                className={`w-full min-h-11 rounded-lg border text-sm font-bold cursor-pointer ${currentStep === step.step ? "bg-[#183d27] border-[#183d27] text-white" : "bg-white border-[#b5bec6] text-[#183d27] hover:bg-[#edf4ee]"}`}>
+                {step.step}
+              </button>
+            </li>
+          ))}
+        </ol>
+        <p className="mt-2 text-sm font-semibold text-[#183d27]">Paso {currentStep} de {WIZARD_STEPS.length}: {WIZARD_STEPS[currentStep - 1]?.label}</p>
       </div>
 
       {/* Interactive Form steps with transition - White box, borders in light gray */}
       <div className="bg-white border border-[#b5bec6] rounded-lg p-6 md:p-8 shadow-sm min-h-[400px]">
-        <AnimatePresence mode="wait">
+        <AnimatePresence initial={false} mode="wait">
           
           {/* STEP 1: INFORMACIÓN DEL CORTE */}
           {currentStep === 1 && (
@@ -568,15 +551,15 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.18 }}
+              transition={{ duration: 0.12 }}
               className="space-y-6"
             >
               <div>
                 <h2 className="font-serif text-2xl text-[#141418] font-extrabold flex items-center gap-2">
-                  <User className="w-6 h-6 text-[#b5bec6]" />
+                  <User className="w-6 h-6 text-[#415a4b]" />
                   <span>Información del Turno</span>
                 </h2>
-                <p className="text-sm text-[#b5bec6]/80 mt-1 font-sans">
+                <p className="text-sm text-[#415a4b] mt-1 font-sans">
                   Registre la fecha operacional, tienda o sucursal y el personal encargado directivo de la caja.
                 </p>
               </div>
@@ -587,7 +570,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                   <label className="text-xs uppercase font-extrabold tracking-wider text-[#141418]">Fecha del Turno</label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                      <Calendar className="w-4 h-4 text-[#b5bec6]" />
+                      <Calendar className="w-4 h-4 text-[#415a4b]" />
                     </div>
                     <input
                       type="date"
@@ -606,7 +589,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                      <Sparkles className="w-4 h-4 text-[#b5bec6]" />
+                      <Sparkles className="w-4 h-4 text-[#415a4b]" />
                     </div>
                     <select
                       value={data.sucursal}
@@ -620,7 +603,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                       <option value="PLAYITA">PLAYITA</option>
                     </select>
                     <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                      <svg className="w-4 h-4 text-[#b5bec6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-[#415a4b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
                       </svg>
                     </div>
@@ -630,11 +613,11 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                 {/* Nombre del cajero */}
                 <div className="flex flex-col gap-2 md:col-span-2">
                   <label className="text-xs uppercase font-extrabold tracking-wider text-[#141418]">
-                    Nombre del Cajero <span className="text-neutral-400 font-normal italic">(Opcional)</span>
+                    Nombre del Cajero <span className="text-neutral-600 font-normal italic">(Opcional)</span>
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                      <User className="w-4 h-4 text-[#b5bec6]" />
+                      <User className="w-4 h-4 text-[#415a4b]" />
                     </div>
                     <input
                       type="text"
@@ -662,7 +645,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                     }
                     setCurrentStep(2);
                   }}
-                  className="bg-[#141418] hover:bg-[#b5bec6] active:scale-[0.99] text-white py-3.5 px-8 rounded-xl text-xs uppercase font-sans tracking-widest font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
+                  className="bg-[#141418] hover:bg-[#b5bec6] active:scale-[0.99] text-white py-3.5 px-8 rounded-xl text-xs uppercase font-sans tracking-widest font-extrabold transition-colors flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
                 >
                   <span>Siguiente: Validación de Tarjetas</span>
                   <ArrowRight className="w-4 h-4" />
@@ -678,15 +661,15 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.18 }}
+              transition={{ duration: 0.12 }}
               className="space-y-6"
             >
               <div>
                 <h2 className="font-serif text-2xl text-[#141418] font-extrabold flex items-center gap-2">
-                  <CreditCard className="w-6 h-6 text-[#b5bec6]" />
+                  <CreditCard className="w-6 h-6 text-[#415a4b]" />
                   <span>Validación de Tarjetas</span>
                 </h2>
-                <p className="text-sm text-[#b5bec6]/80 mt-1 font-sans">
+                <p className="text-sm text-[#415a4b] mt-1 font-sans">
                   Registre la suma de tarjetas que indica el corte de ticket del software y verifique contra el total físico liquidado en terminales.
                 </p>
               </div>
@@ -702,7 +685,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
 
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-[10px] mb-1 uppercase font-bold tracking-wider text-[#b5bec6]/80">Ticket Mañana (Soft Total Tarjetas)</label>
+                      <label className="block text-[10px] mb-1 uppercase font-bold tracking-wider text-[#415a4b]">Ticket Mañana (Soft Total Tarjetas)</label>
                       <input
                         type="number"
                         inputMode="decimal"
@@ -749,7 +732,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
 
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-[10px] mb-1 uppercase font-bold tracking-wider text-[#b5bec6]/80">Terminal Santander (Default)</label>
+                      <label className="block text-[10px] mb-1 uppercase font-bold tracking-wider text-[#415a4b]">Terminal Santander (Default)</label>
                       <input
                         type="number"
                         inputMode="decimal"
@@ -766,12 +749,12 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                     {/* Rendering other terminals if added */}
                     {data.otrasTerminales.length > 0 && (
                       <div className="border-t border-dotted border-[#b5bec6] pt-2 space-y-2">
-                        <p className="text-[10px] uppercase tracking-wider text-[#b5bec6]/80 font-bold">Otras Terminales Adicionales:</p>
+                        <p className="text-[10px] uppercase tracking-wider text-[#415a4b] font-bold">Otras Terminales Adicionales:</p>
                         {data.otrasTerminales.map(col => (
                           <div key={col.id} className="flex justify-between items-center bg-white p-2 border border-[#b5bec6] rounded-xl shadow-3xs">
                             <div className="text-xs text-[#141418] font-sans">
                               <span className="font-bold">{col.name}:</span>
-                              <span className="font-mono ml-1 font-extrabold text-[#b5bec6]">{formatMXN(col.amount)}</span>
+                              <span className="font-mono ml-1 font-extrabold text-[#415a4b]">{formatMXN(col.amount)}</span>
                             </div>
                             <button
                               type="button"
@@ -815,17 +798,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                       </div>
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          const amount = parseFloat(newTerminalAmount);
-                          if (!newTerminalName.trim() || isNaN(amount) || amount < 0) return;
-                          setData(prev => ({
-                            ...prev,
-                            otrasTerminales: [...prev.otrasTerminales, { id: Date.now().toString(), name: newTerminalName.trim(), amount }]
-                          }));
-                          setNewTerminalName("");
-                          setNewTerminalAmount("");
-                        }}
+                        onClick={handleAddTerminal}
                         className="w-full bg-[#C1121F] hover:bg-[#141418] text-white rounded-lg py-1.5 text-[10px] font-extrabold uppercase tracking-widest cursor-pointer transition-colors"
                       >
                         + Agregar Terminal
@@ -930,14 +903,14 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                 <button
                   type="button"
                   onClick={() => setCurrentStep(1)}
-                  className="bg-[#edf4ee] hover:bg-[#b5bec6] text-neutral-700 py-3 px-6 rounded-xl text-xs uppercase font-sans tracking-widest font-extrabold transition-all cursor-pointer min-h-[44px]"
+                  className="bg-[#edf4ee] hover:bg-[#b5bec6] text-neutral-700 py-3 px-6 rounded-xl text-xs uppercase font-sans tracking-widest font-extrabold transition-colors cursor-pointer min-h-[44px]"
                 >
                   Regresar
                 </button>
                 <button
                   type="button"
                   onClick={() => setCurrentStep(3)}
-                  className="bg-[#141418] hover:bg-[#b5bec6] active:scale-[0.99] text-white py-3 px-8 rounded-xl text-xs uppercase font-sans tracking-widest font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
+                  className="bg-[#141418] hover:bg-[#b5bec6] active:scale-[0.99] text-white py-3 px-8 rounded-xl text-xs uppercase font-sans tracking-widest font-extrabold transition-colors flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
                 >
                   <span>Siguiente: Datos de Efectivo</span>
                   <ArrowRight className="w-4 h-4" />
@@ -953,15 +926,15 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.18 }}
+              transition={{ duration: 0.12 }}
               className="space-y-6"
             >
               <div>
                 <h2 className="font-serif text-2xl text-[#141418] font-extrabold flex items-center gap-2">
-                  <DollarSign className="w-6 h-6 text-[#b5bec6]" />
+                  <DollarSign className="w-6 h-6 text-[#415a4b]" />
                   <span>Datos del Efectivo, Gastos y Cancelaciones</span>
                 </h2>
-                <p className="text-sm text-[#b5bec6]/80 mt-1 font-sans">
+                <p className="text-sm text-[#415a4b] mt-1 font-sans">
                   Ingrese las ventas en físico del cajón, indique fondos iniciales de cambio, deducciones de gastos de proveedores, consumos internos, y tickets cancelados o devoluciones para calcular el efectivo esperado.
                 </p>
               </div>
@@ -980,10 +953,10 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                     <div>
                       <label className="block text-[11px] uppercase font-bold tracking-wider text-neutral-600 mb-1 flex justify-between">
                         <span>Ventas en Efectivo</span>
-                        <span className="text-[9px] text-[#b5bec6] lowercase uppercase italic font-black bg-white border border-[#b5bec6] px-2 py-0.5 rounded">Requerido</span>
+                        <span className="text-[9px] text-[#415a4b] lowercase uppercase italic font-black bg-white border border-[#b5bec6] px-2 py-0.5 rounded">Requerido</span>
                       </label>
                       <div className="relative">
-                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center font-mono text-neutral-400 text-sm">$</span>
+                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center font-mono text-neutral-600 text-sm">$</span>
                         <input
                           type="number"
                           inputMode="decimal"
@@ -1002,7 +975,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                     <div>
                       <label className="block text-[11px] uppercase font-bold tracking-wider text-neutral-600 mb-1">Entradas de Efectivo (Fondo Inicial, Recargas)</label>
                       <div className="relative">
-                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center font-mono text-neutral-400 text-sm">$</span>
+                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center font-mono text-neutral-600 text-sm">$</span>
                         <input
                           type="number"
                           inputMode="decimal"
@@ -1021,7 +994,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                     <div>
                       <label className="block text-[11px] uppercase font-bold tracking-wider text-neutral-600 mb-1">Salidas de Efectivo (Gastos, retiros, proveedores)</label>
                       <div className="relative">
-                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center font-mono text-neutral-400 text-sm">$</span>
+                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center font-mono text-neutral-600 text-sm">$</span>
                         <input
                           type="number"
                           inputMode="decimal"
@@ -1046,19 +1019,19 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                   <div className="bg-[#edf4ee] border border-[#b5bec6] p-5 rounded-lg space-y-4">
                     <h3 className="text-xs uppercase tracking-widest font-extrabold text-[#141418] border-b border-[#b5bec6] pb-2 flex justify-between items-center">
                       <span>Vales o Consumos Internos</span>
-                      <span className="font-mono text-[#b5bec6] text-xs font-bold">Suma: {formatMXN(results.totalTicketsConsumo)}</span>
+                      <span className="font-mono text-[#415a4b] text-xs font-bold">Suma: {formatMXN(results.totalTicketsConsumo)}</span>
                     </h3>
 
                     {data.ticketsConsumo.length === 0 ? (
                       <div className="text-center py-4 border border-dashed border-[#b5bec6] rounded-xl bg-white">
-                        <p className="text-xs text-neutral-400 font-sans italic font-semibold">No se reportaron consumos internos.</p>
+                        <p className="text-xs text-neutral-600 font-sans italic font-semibold">No se reportaron consumos internos.</p>
                       </div>
                     ) : (
                       <div className="space-y-3 max-h-[160px] overflow-y-auto pr-1">
                         {data.ticketsConsumo.map((ticket, idx) => (
                           <div key={ticket.id} className="bg-white border border-[#b5bec6] p-3 rounded-xl space-y-2 relative shadow-3xs">
                             <div className="flex justify-between items-center">
-                              <span className="text-[10px] font-extrabold text-[#b5bec6] uppercase tracking-wider">Consumo {idx + 1}</span>
+                              <span className="text-[10px] font-extrabold text-[#415a4b] uppercase tracking-wider">Consumo {idx + 1}</span>
                               <button
                                 type="button"
                                 onClick={() => handleDeleteTicketConsumo(ticket.id)}
@@ -1081,7 +1054,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                                 spellCheck={false}
                               />
                               <div className="relative">
-                                <span className="absolute inset-y-0 left-2.5 flex items-center font-mono text-neutral-400 text-[10px]">$</span>
+                                <span className="absolute inset-y-0 left-2.5 flex items-center font-mono text-neutral-600 text-[10px]">$</span>
                                 <input
                                   type="number"
                                   inputMode="decimal"
@@ -1103,7 +1076,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                     <button
                       type="button"
                       onClick={handleAddTicketConsumo}
-                      className="w-full bg-[#b5bec6]/15 hover:bg-[#b5bec6]/25 text-[#b5bec6] border border-dashed border-[#b5bec6]/40 rounded-xl py-2.5 text-xs font-sans font-extrabold uppercase tracking-widest transition flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="w-full bg-[#b5bec6]/15 hover:bg-[#b5bec6]/25 text-[#415a4b] border border-dashed border-[#b5bec6]/40 rounded-xl py-2.5 text-xs font-sans font-extrabold uppercase tracking-widest transition flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <Plus className="w-4 h-4" />
                       <span>Agregar Vale de Consumo</span>
@@ -1114,19 +1087,19 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                   <div className="bg-[#edf4ee] border border-[#b5bec6] p-5 rounded-lg space-y-4">
                     <h3 className="text-xs uppercase tracking-widest font-extrabold text-[#141418] border-b border-[#b5bec6] pb-2 flex justify-between items-center">
                       <span>Ajustes del Turno</span>
-                      <span className="font-mono text-[#b5bec6] text-xs font-bold font-mono">Neto: {results.totalAjustesTurno >= 0 ? "+" : ""}{formatMXN(results.totalAjustesTurno)}</span>
+                      <span className="font-mono text-[#415a4b] text-xs font-bold font-mono">Neto: {results.totalAjustesTurno >= 0 ? "+" : ""}{formatMXN(results.totalAjustesTurno)}</span>
                     </h3>
 
                     {(data.ajustesTurno || []).length === 0 ? (
                       <div className="text-center py-4 border border-dashed border-[#b5bec6] rounded-xl bg-white">
-                        <p className="text-xs text-neutral-400 font-sans italic font-semibold">No se reportaron ajustes del turno.</p>
+                        <p className="text-xs text-neutral-600 font-sans italic font-semibold">No se reportaron ajustes del turno.</p>
                       </div>
                     ) : (
                       <div className="space-y-3 max-h-[190px] overflow-y-auto pr-1">
                         {(data.ajustesTurno || []).map((ajuste, idx) => (
                           <div key={ajuste.id} className="bg-white border border-[#b5bec6] p-3 rounded-xl space-y-2 relative shadow-3xs">
                             <div className="flex justify-between items-center">
-                              <span className="text-[10px] font-extrabold text-[#b5bec6] uppercase tracking-wider">Ajuste {idx + 1}</span>
+                              <span className="text-[10px] font-extrabold text-[#415a4b] uppercase tracking-wider">Ajuste {idx + 1}</span>
                               <button
                                 type="button"
                                 onClick={() => handleDeleteAjusteTurno(ajuste.id)}
@@ -1150,7 +1123,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                               />
                               <div className="grid grid-cols-2 gap-2">
                                 <div className="relative">
-                                  <span className="absolute inset-y-0 left-2.5 flex items-center font-mono text-neutral-400 text-[10px]">$</span>
+                                  <span className="absolute inset-y-0 left-2.5 flex items-center font-mono text-neutral-600 text-[10px]">$</span>
                                   <input
                                     type="number"
                                     inputMode="decimal"
@@ -1220,7 +1193,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                   </div>
                   <div className="flex justify-between text-[#141418] border-t border-[#b5bec6] pt-2.5 font-extrabold text-sm select-none">
                     <span>(=) Efectivo Neto Esperado:</span>
-                    <span className="font-mono text-[#b5bec6] font-black">{formatMXN(results.efectivoEsperado)}</span>
+                    <span className="font-mono text-[#415a4b] font-black">{formatMXN(results.efectivoEsperado)}</span>
                   </div>
                 </div>
               </div>
@@ -1230,14 +1203,14 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                 <button
                   type="button"
                   onClick={() => setCurrentStep(2)}
-                  className="bg-[#edf4ee] hover:bg-[#b5bec6] text-neutral-700 py-3 px-6 rounded-xl text-xs uppercase font-sans tracking-widest font-extrabold transition-all cursor-pointer min-h-[44px]"
+                  className="bg-[#edf4ee] hover:bg-[#b5bec6] text-neutral-700 py-3 px-6 rounded-xl text-xs uppercase font-sans tracking-widest font-extrabold transition-colors cursor-pointer min-h-[44px]"
                 >
                   Regresar
                 </button>
                 <button
                   type="button"
                   onClick={() => setCurrentStep(4)}
-                  className="bg-[#141418] hover:bg-[#b5bec6] active:scale-[0.99] text-white py-3 px-8 rounded-xl text-xs uppercase font-sans tracking-widest font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
+                  className="bg-[#141418] hover:bg-[#b5bec6] active:scale-[0.99] text-white py-3 px-8 rounded-xl text-xs uppercase font-sans tracking-widest font-extrabold transition-colors flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
                 >
                   <span>Siguiente: Conteo Físico</span>
                   <ArrowRight className="w-4 h-4" />
@@ -1253,15 +1226,15 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.18 }}
+              transition={{ duration: 0.12 }}
               className="space-y-8"
             >
               <div>
                 <h2 className="font-serif text-2xl text-[#141418] font-extrabold flex items-center gap-2">
-                  <Coins className="w-6 h-6 text-[#b5bec6]" />
+                  <Coins className="w-6 h-6 text-[#415a4b]" />
                   <span>Arqueo de Conteo Físico</span>
                 </h2>
-                <p className="text-sm text-[#b5bec6]/80 mt-1 font-sans">
+                <p className="text-sm text-[#415a4b] mt-1 font-sans">
                   Sume y declare las cantidades físicas de billetes, monedas y dólares en tu caja para balancearlo contra el efectivo esperado en tiempo real.
                 </p>
               </div>
@@ -1269,15 +1242,15 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
               {/* Real-time subtotal indicators banner (Navy & petrol theme) */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-[#edf4ee] border border-[#b5bec6] p-4 rounded-lg">
                 <div className="bg-white border border-[#b5bec6] p-3 rounded-xl text-center shadow-3xs">
-                  <span className="text-[9px] uppercase tracking-wider font-extrabold text-[#b5bec6]/80 block mb-0.5">Billetes (MXN)</span>
+                  <span className="text-[9px] uppercase tracking-wider font-extrabold text-[#415a4b] block mb-0.5">Billetes (MXN)</span>
                   <span className="font-mono text-xs font-bold text-[#141418]">{formatMXN(results.subtotalBilletes)}</span>
                 </div>
                 <div className="bg-white border border-[#b5bec6] p-3 rounded-xl text-center shadow-3xs">
-                  <span className="text-[9px] uppercase tracking-wider font-extrabold text-[#b5bec6]/80 block mb-0.5">Monedas (MXN)</span>
+                  <span className="text-[9px] uppercase tracking-wider font-extrabold text-[#415a4b] block mb-0.5">Monedas (MXN)</span>
                   <span className="font-mono text-xs font-bold text-[#141418]">{formatMXN(results.subtotalMonedas)}</span>
                 </div>
                 <div className="bg-white border border-[#b5bec6] p-3 rounded-xl text-center shadow-3xs">
-                  <span className="text-[9px] uppercase tracking-wider font-extrabold text-[#b5bec6]/80 block mb-0.5">Dólares (MXN)</span>
+                  <span className="text-[9px] uppercase tracking-wider font-extrabold text-[#415a4b] block mb-0.5">Dólares (MXN)</span>
                   <span className="font-mono text-xs font-bold text-[#141418]">{formatMXN(results.subtotalDolares)}</span>
                 </div>
                 <div className="bg-[#C1121F] text-white p-3 rounded-xl text-center shadow-xs">
@@ -1291,7 +1264,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                 
                 {/* Billetes column */}
                 <div className="space-y-4">
-                  <h3 className="text-xs uppercase tracking-widest font-extrabold text-[#b5bec6] border-b border-[#b5bec6] pb-2">
+                  <h3 className="text-xs uppercase tracking-widest font-extrabold text-[#415a4b] border-b border-[#b5bec6] pb-2">
                     Billetes MXN
                   </h3>
 
@@ -1308,7 +1281,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                             <button
                               type="button"
                               onClick={() => adjustConteo(denom, -1)}
-                              className="w-9 h-9 rounded-lg bg-white border border-[#b5bec6] hover:bg-neutral-100 text-neutral-600 flex items-center justify-center font-bold text-lg select-none cursor-pointer active:scale-95 transition-all text-center"
+                              className="w-9 h-9 rounded-lg bg-white border border-[#b5bec6] hover:bg-neutral-100 text-neutral-600 flex items-center justify-center font-bold text-lg select-none cursor-pointer active:scale-95 transition-colors text-center"
                             >
                               -
                             </button>
@@ -1326,7 +1299,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                             <button
                               type="button"
                               onClick={() => adjustConteo(denom, 1)}
-                              className="w-9 h-9 rounded-lg bg-[#C1121F] hover:bg-[#141418] text-white flex items-center justify-center font-bold text-lg select-none cursor-pointer active:scale-95 transition-all text-center"
+                              className="w-9 h-9 rounded-lg bg-[#C1121F] hover:bg-[#141418] text-white flex items-center justify-center font-bold text-lg select-none cursor-pointer active:scale-95 transition-colors text-center"
                             >
                               +
                             </button>
@@ -1346,7 +1319,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                   
                   {/* Monedas subpart */}
                   <div className="space-y-4">
-                    <h3 className="text-xs uppercase tracking-widest font-extrabold text-[#b5bec6] border-b border-[#b5bec6] pb-2">
+                    <h3 className="text-xs uppercase tracking-widest font-extrabold text-[#415a4b] border-b border-[#b5bec6] pb-2">
                       Monedas MXN
                     </h3>
 
@@ -1388,7 +1361,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                               <button
                                 type="button"
                                 onClick={() => adjustConteo(item.k, -1)}
-                                className="w-8 h-8 rounded-lg bg-white border border-[#b5bec6] hover:bg-neutral-100 text-[#141418] flex items-center justify-center font-bold text-md select-none cursor-pointer active:scale-95 transition-all text-center"
+                                className="w-8 h-8 rounded-lg bg-white border border-[#b5bec6] hover:bg-neutral-100 text-[#141418] flex items-center justify-center font-bold text-md select-none cursor-pointer active:scale-95 transition-colors text-center"
                               >
                                 -
                               </button>
@@ -1406,7 +1379,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                               <button
                                 type="button"
                                 onClick={() => adjustConteo(item.k, 1)}
-                                className="w-8 h-8 rounded-lg bg-[#C1121F] hover:bg-[#141418] text-white flex items-center justify-center font-bold text-md select-none cursor-pointer active:scale-95 transition-all text-center"
+                                className="w-8 h-8 rounded-lg bg-[#C1121F] hover:bg-[#141418] text-white flex items-center justify-center font-bold text-md select-none cursor-pointer active:scale-95 transition-colors text-center"
                               >
                                 +
                               </button>
@@ -1423,9 +1396,9 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
 
                   {/* Dólares subpart */}
                   <div className="bg-[#edf4ee] border border-[#b5bec6] p-4 rounded-lg space-y-3">
-                    <h4 className="text-xs uppercase tracking-widest font-extrabold text-[#b5bec6] border-b border-[#b5bec6] pb-1.5 flex justify-between items-center">
+                    <h4 className="text-xs uppercase tracking-widest font-extrabold text-[#415a4b] border-b border-[#b5bec6] pb-1.5 flex justify-between items-center">
                       <span>Dólares Estadounidenses (USD)</span>
-                      <label className="flex items-center gap-1 text-[10px] text-[#b5bec6]/80 font-bold">
+                      <label className="flex items-center gap-1 text-[10px] text-[#415a4b] font-bold">
                         TC: $
                         <input
                           type="number"
@@ -1443,7 +1416,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                     
                     <div className="flex gap-4 items-center">
                       <div className="flex-1">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-[#b5bec6]/80 block mb-1">Dólares en Caja (USD)</label>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-[#415a4b] block mb-1">Dólares en Caja (USD)</label>
                         <input
                           type="number"
                           inputMode="decimal"
@@ -1465,8 +1438,8 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
 
                   {/* Apartados de efectivo */}
                   <div className="bg-[#edf4ee] border border-[#b5bec6] p-4 rounded-lg space-y-4">
-                    <h4 className="text-xs uppercase tracking-widest font-extrabold text-[#b5bec6] border-b border-[#b5bec6] pb-1.5 flex items-center gap-2">
-                      <Coins className="w-4 h-4 text-[#b5bec6]" />
+                    <h4 className="text-xs uppercase tracking-widest font-extrabold text-[#415a4b] border-b border-[#b5bec6] pb-1.5 flex items-center gap-2">
+                      <Coins className="w-4 h-4 text-[#415a4b]" />
                       <span>Apartados de Efectivo</span>
                     </h4>
                     <p className="text-[10px] text-neutral-500">Registre cada importe que permanecerá reservado en caja para el siguiente turno, proveedores o caja chica.</p>
@@ -1538,13 +1511,13 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                       <span className="text-[10px] uppercase tracking-wider font-extrabold text-neutral-500 block mb-1">Efectivo Físico Contado</span>
                       <p className="font-mono text-lg font-black text-[#141418]">{formatMXN(results.efectivoContado)}</p>
                     </div>
-                    <span className="text-[10px] text-neutral-400 mt-2">Billetes + Monedas + Dólares + Apartados</span>
+                    <span className="text-[10px] text-neutral-600 mt-2">Billetes + Monedas + Dólares + Apartados</span>
                   </div>
 
                   <div className="bg-white border border-[#b5bec6] p-4 rounded-lg flex flex-col justify-between shadow-3xs">
                     <div>
                       <span className="text-[10px] uppercase tracking-wider font-extrabold text-neutral-500 block mb-1">Apartados en Caja</span>
-                      <p className="font-mono text-lg font-black text-[#b5bec6]">{formatMXN(results.totalApartados || 0)}</p>
+                      <p className="font-mono text-lg font-black text-[#415a4b]">{formatMXN(results.totalApartados || 0)}</p>
                     </div>
                     <span className="text-[10px] text-neutral-600 font-semibold mt-2 line-clamp-1">
                       {(data.apartadosEfectivo || []).length > 0 ? `${data.apartadosEfectivo!.length} registro(s) activo(s)` : "Sin apartados registrados"}
@@ -1556,7 +1529,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                       <span className="text-[10px] uppercase tracking-wider font-extrabold text-[#edf4ee] block mb-1">Efectivo Entregado</span>
                       <p className="font-mono text-lg font-black text-white">{formatMXN(results.efectivoEntregado || 0)}</p>
                     </div>
-                    <span className="text-[10px] text-[#b5bec6] mt-2 font-bold">Fórmula: Contado - Apartados</span>
+                    <span className="text-[10px] text-[#415a4b] mt-2 font-bold">Fórmula: Contado - Apartados</span>
                   </div>
                 </div>
               </div>
@@ -1584,16 +1557,16 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                 )}
 
                 {results.statusDiferencia === 'sobrante' && (
-                  <div className="bg-white border-2 border-[#b5bec6] text-[#b5bec6] rounded-lg p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
+                  <div className="bg-white border-2 border-[#b5bec6] text-[#415a4b] rounded-lg p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
                     <div className="flex gap-3.5 items-start">
-                      <AlertCircle className="w-9 h-9 text-[#b5bec6] shrink-0 mt-0.5" />
+                      <AlertCircle className="w-9 h-9 text-[#415a4b] shrink-0 mt-0.5" />
                       <div>
-                        <h4 className="font-serif font-black text-lg text-[#b5bec6]">Sobrante de {formatMXN(results.diferenciaEfectivo)}</h4>
-                        <p className="text-xs text-[#b5bec6] font-sans font-semibold mt-1">El conteo de caja física registra un sobrante de dinero en exceso sobre el efectivo esperado por el sistema.</p>
+                        <h4 className="font-serif font-black text-lg text-[#415a4b]">Sobrante de {formatMXN(results.diferenciaEfectivo)}</h4>
+                        <p className="text-xs text-[#415a4b] font-sans font-semibold mt-1">El conteo de caja física registra un sobrante de dinero en exceso sobre el efectivo esperado por el sistema.</p>
                       </div>
                     </div>
                     <div className="text-center shrink-0 bg-[#C1121F] text-white rounded-xl px-5 py-3 font-mono font-black min-w-[150px]">
-                      <span className="text-[9px] uppercase block leading-none mb-1 text-[#b5bec6] font-bold">SOBRANTE</span>
+                      <span className="text-[9px] uppercase block leading-none mb-1 text-[#415a4b] font-bold">SOBRANTE</span>
                       <span className="text-base font-extrabold">+{formatMXN(results.diferenciaEfectivo)}</span>
                     </div>
                   </div>
@@ -1617,8 +1590,8 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
               </div>
 
               <div className="border-t border-[#b5bec6] pt-6">
-                <button type="button" onClick={handleSendPDF} className="w-full flex items-center justify-center gap-2 bg-[#141418] text-white rounded-lg px-5 py-4 font-bold cursor-pointer">
-                  <Send className="w-5 h-5" /> ENVIAR PDF
+                <button type="button" onClick={handleSendPDF} disabled={!pdfModule} className="w-full flex items-center justify-center gap-2 bg-[#141418] text-white rounded-lg px-5 py-4 font-bold cursor-pointer">
+                  <Send className="w-5 h-5" /> {pdfModule ? "ENVIAR PDF" : shareError ? "PDF no disponible" : "Preparando PDF…"}
                 </button>
                 {shareError && <p role="alert" className="mt-3 text-sm text-red-700">{shareError}</p>}
               </div>
@@ -1628,14 +1601,14 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                 <button
                   type="button"
                   onClick={() => setCurrentStep(4)}
-                  className="bg-[#edf4ee] hover:bg-[#b5bec6] text-neutral-700 py-3 px-6 rounded-xl text-xs uppercase font-sans tracking-widest font-extrabold transition-all cursor-pointer min-h-[44px]"
+                  className="bg-[#edf4ee] hover:bg-[#b5bec6] text-neutral-700 py-3 px-6 rounded-xl text-xs uppercase font-sans tracking-widest font-extrabold transition-colors cursor-pointer min-h-[44px]"
                 >
                   Regresar
                 </button>
                 <button
                   type="button"
                   onClick={onBack}
-                  className="bg-[#141418] hover:bg-[#b5bec6] active:scale-[0.99] text-white py-3 px-8 rounded-xl text-xs uppercase font-sans tracking-widest font-bold transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
+                  className="bg-[#141418] hover:bg-[#b5bec6] active:scale-[0.99] text-white py-3 px-8 rounded-xl text-xs uppercase font-sans tracking-widest font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
                 >
                   Finalizar y Cerrar Sesión
                 </button>

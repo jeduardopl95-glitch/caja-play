@@ -235,18 +235,34 @@ export function generateCortePDF(data: CorteCajaData, results: CorteCajaResult) 
     y += 5;
   }
 
-  // Print individual adjustments breakdown if they exist
-  if (data.ajustesTurno && data.ajustesTurno.length > 0) {
-    checkPageBreak(12);
-    doc.setFont("helvetica", "italic");
-    doc.setFontSize(7.5);
-    doc.setTextColor(100, 110, 120);
-    const textAjustes = "Ajustes de Turno: " + data.ajustesTurno.map(t => `${t.description || "Ajuste"} (${t.type === 'sumar' ? '+' : '-'}): ${formatMXN(t.amount)}`).join(" | ");
-    doc.text(textAjustes, 22, y, { maxWidth: 170 });
-    y += 6;
-  } else {
-    y += 3;
+  y += 4;
+  for (const [index, adjustment] of (data.ajustesTurno || []).entries()) {
+    const sign = adjustment.type === "sumar" ? "+" : "-";
+    const heading = `Ajuste ${index + 1} (${sign}): ${formatMXN(adjustment.amount)}`;
+    const lineHeight = 4;
+    const paddingAndHeader = 13;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    const lines: string[] = doc.splitTextToSize(adjustment.description?.trim() || "Sin motivo registrado", contentWidth - 8);
+
+    for (let offset = 0; offset < lines.length;) {
+      checkPageBreak(paddingAndHeader + lineHeight);
+      const capacity = Math.floor((258 - y - paddingAndHeader) / lineHeight);
+      const chunk = lines.slice(offset, offset + capacity);
+      const height = paddingAndHeader + chunk.length * lineHeight;
+      doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
+      doc.setLineWidth(0.15);
+      doc.rect(margin, y, contentWidth, height, "S");
+      doc.setTextColor(darkTextColor[0], darkTextColor[1], darkTextColor[2]);
+      doc.setFont("helvetica", "bold");
+      doc.text(offset ? `${heading} (continuación)` : heading, margin + 4, y + 5);
+      doc.setFont("helvetica", "normal");
+      doc.text(chunk, margin + 4, y + 11, { lineHeightFactor: lineHeight * 72 / (25.4 * 9) });
+      y += height + 4;
+      offset += chunk.length;
+    }
   }
+  y += 3;
 
   // --- SECCIÓN 4: CONTEO FÍSICO ARQUEO ---
   checkPageBreak(50);
@@ -463,65 +479,4 @@ export function generateCortePDF(data: CorteCajaData, results: CorteCajaResult) 
     url,
     blob: pdfBlob
   };
-}
-
-export function generateCorteTextSummary(data: CorteCajaData, results: CorteCajaResult) {
-  const diffVal = results.diferenciaEfectivo;
-  const statusIcon = results.statusDiferencia === "exacto" ? "✅" : results.statusDiferencia === "sobrante" ? "🔵" : "🚨";
-  const diffWord = results.statusDiferencia === "exacto" ? "CAJA EXACTA" : results.statusDiferencia === "sobrante" ? "SOBRANTE" : "FALTANTE";
-
-  // Safe checks for arrays
-  const ticketsConsuList = data.ticketsConsumo || [];
-  const ajustesList = data.ajustesTurno || [];
-  const apartadosList = data.apartadosEfectivo?.length
-    ? data.apartadosEfectivo
-    : data.fondoSiguienteTurno
-      ? [{ id: "apartado-legado", description: data.fondoMotivo || "Fondo para siguiente turno", amount: data.fondoSiguienteTurno }]
-      : [];
-
-  return `*📋 RESUMEN AUTOMÁTICO DE CORTE DE CAJA*
-*CAJA PLAY | Control Diario*
----------------------------------------
-*📅 Información de Sucursal & Turno:*
-• Fecha: ${data.fecha}
-• Sucursal: ${(data.sucursal || "No especificada").toUpperCase()}
-• Cajero: ${data.cajeroName || "Sin registrar"}
-
-*💳 Validación de Cobros con Tarjetas:*
-• Ticket Mañana: ${formatMXN(data.tarjetaManana)}
-• Ticket Tarde: ${formatMXN(data.tarjetaTarde)}
-• Tarjetas Total (Tickets): ${formatMXN(results.tarjetasTicket)}
-• Terminal Santander (Verificado): ${formatMXN(data.terminalSantander)}
-${data.otrasTerminales.map(t => `• Terminal adicional [${t.name}]: ${formatMXN(t.amount)}`).join("\n")}
-• Total Terminales: ${formatMXN(results.totalTerminales)}
-• Diferencia en Tarjetas: ${Math.abs(results.diferenciaTarjetas) < 0.01 ? "Cuadrado ($0.00)" : (results.diferenciaTarjetas > 0 ? `Hay ${formatMXN(Math.abs(results.diferenciaTarjetas))} MÁS en las terminales que en el sistema` : `Hay ${formatMXN(Math.abs(results.diferenciaTarjetas))} MENOS en las terminales que en el sistema`)}
-${Math.abs(results.diferenciaTarjetas) > 0.01 ? `• Obs: ${data.tarjetaObservaciones || "Sin observaciones declaradas."}` : ""}
-
-*💵 Cálculo del Flujo de Efectivo Esperado:*
-• Ventas en caja registradas: ${formatMXN(data.ventasEfectivoManual)}
-• Entradas de Efectivo (Fondo): ${formatMXN(data.entradasEfectivo)}
-• Salidas de Efectivo (Gastos): ${formatMXN(data.salidasEfectivo)}
-• Consumos Internos: ${formatMXN(results.totalTicketsConsumo)}
-  ${ticketsConsuList.map((t, i) => `  - Vale ${i + 1} (${t.description || "Consumo"}): ${formatMXN(t.amount)}`).join("\n  ")}
-• Ajustes del Turno (Neto): ${results.totalAjustesTurno >= 0 ? "+" : ""}${formatMXN(results.totalAjustesTurno)}
-  ${ajustesList.map((ajust, idx) => `  - Ajuste ${idx + 1} [${ajust.type === 'sumar' ? '+' : '-'}] (${ajust.description || "Ajuste"}): ${formatMXN(ajust.amount)}`).join("\n  ")}
-
-*• EFECTIVO ESPERADO EN CAJA: ${formatMXN(results.efectivoEsperado)}*
-
-*🪙 Conteo Arqueo Físico de Caja:*
-• Subtotal en Billetes: ${formatMXN(results.subtotalBilletes)}
-• Subtotal en Monedas: ${formatMXN(results.subtotalMonedas)}
-• Dólares Contados: ${data.dolaresConteo || 0} USD a $${(data.tipoCambioUSD || 15).toFixed(2)} MXN (${formatMXN(results.subtotalDolares)})
-• TOTAL EFECTIVO CONTADO: ${formatMXN(results.efectivoContado)}
-
-*💰 Apartados de Efectivo:*
-${apartadosList.map(apartado => `• ${apartado.description || "Apartado"}: ${formatMXN(apartado.amount)}`).join("\n") || "• Sin apartados registrados"}
-• Total Apartados: ${formatMXN(results.totalApartados || 0)}
-• EFECTIVO ENTREGADO: ${formatMXN(results.efectivoEntregado || 0)}
-
-*📊 Balance de Reconciliación Final:*
-• Diferencia de Efectivo: ${formatMXN(diffVal)}
-• Estado de Cierre: ${statusIcon} *${diffWord}* ${diffVal !== 0 ? `por ${formatMXN(Math.abs(diffVal))}` : ""}
-
-Generado de forma segura desde la aplicación Caja Play.`;
 }

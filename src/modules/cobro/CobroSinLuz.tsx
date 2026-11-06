@@ -128,10 +128,39 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
     if (!saved) {
       handleSync();
     }
-    setTimeout(() => {
+    if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
       searchInputRef.current?.focus();
-    }, 100);
+    }
   }, []);
+
+  useEffect(() => {
+    if (!showImportModal && !showCatalogModal) return;
+    const opener = document.activeElement;
+    const dialog = document.querySelector<HTMLElement>('[data-catalog-dialog]');
+    if (!dialog) return;
+    dialog.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setShowImportModal(false);
+        setShowCatalogModal(false);
+      }
+      if (event.key !== "Tab") return;
+      const controls = Array.from(dialog.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href]'
+      )).filter(control => control.tabIndex >= 0 && control.getClientRects().length);
+      const index = controls.indexOf(document.activeElement as HTMLElement);
+      if (index === -1 || (event.shiftKey ? index === 0 : index === controls.length - 1)) {
+        event.preventDefault();
+        (event.shiftKey ? controls.at(-1) : controls[0])?.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
+    };
+  }, [showImportModal, showCatalogModal]);
 
   const handleSync = async () => {
     setIsSyncing(true);
@@ -592,7 +621,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                     const url = `https://wa.me/?text=${encodeURIComponent(lastCompletedSummary)}`;
                     window.open(url, "_blank");
                   }}
-                  className="w-full bg-[#25D366] hover:bg-[#1fb855] text-white py-3.5 px-6 rounded-xl text-xs uppercase font-mono tracking-wider font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full bg-[#25D366] hover:bg-[#1fb855] text-white py-3.5 px-6 rounded-xl text-xs uppercase font-mono tracking-wider font-bold transition-colors shadow-sm flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Share2 className="w-4 h-4" />
                   <span>Compartir por WhatsApp</span>
@@ -601,7 +630,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                 <button
                   type="button"
                   onClick={handleManualCopy}
-                  className="w-full bg-[#edf2fd] hover:bg-neutral-200 text-neutral-700 border border-[#b5bec6] py-3 px-6 rounded-xl text-xs uppercase font-mono tracking-wider font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full bg-[#edf2fd] hover:bg-neutral-200 text-neutral-700 border border-[#b5bec6] py-3 px-6 rounded-xl text-xs uppercase font-mono tracking-wider font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Copy className="w-3.5 h-3.5" />
                   <span>{copiedNotification ? "¡Copiado!" : "Volver a copiar texto"}</span>
@@ -615,7 +644,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                     setShowSuccess(false);
                     searchInputRef.current?.focus();
                   }}
-                  className="w-full bg-[#141418] hover:bg-[#C1121F] text-white py-3.5 px-6 rounded-xl text-xs uppercase font-mono tracking-wider font-bold transition-all cursor-pointer mt-1"
+                  className="w-full bg-[#141418] hover:bg-[#C1121F] text-white py-3.5 px-6 rounded-xl text-xs uppercase font-mono tracking-wider font-bold transition-colors cursor-pointer mt-1"
                 >
                   Nueva Venta
                 </button>
@@ -635,6 +664,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
             className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
           >
             <motion.div
+              role="dialog" aria-modal="true" aria-label="Catálogo e inventario" data-catalog-dialog tabIndex={-1}
               initial={{ scale: 0.95, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 20 }}
@@ -672,7 +702,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                 <button
                   type="button"
                   onClick={() => setImportTab("file")}
-                  className={`pb-3 px-4 text-xs font-mono font-bold uppercase tracking-wider transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
+                  className={`pb-3 px-4 text-xs font-mono font-bold uppercase tracking-wider transition-colors border-b-2 cursor-pointer flex items-center gap-2 ${
                     importTab === "file"
                       ? "border-[#C1121F] text-[#141418]"
                       : "border-transparent text-neutral-400 hover:text-neutral-700"
@@ -685,7 +715,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                 <button
                   type="button"
                   onClick={() => setImportTab("paste")}
-                  className={`pb-3 px-4 text-xs font-mono font-bold uppercase tracking-wider transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
+                  className={`pb-3 px-4 text-xs font-mono font-bold uppercase tracking-wider transition-colors border-b-2 cursor-pointer flex items-center gap-2 ${
                     importTab === "paste"
                       ? "border-[#C1121F] text-[#141418]"
                       : "border-transparent text-neutral-400 hover:text-neutral-700"
@@ -698,7 +728,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                 <button
                   type="button"
                   onClick={() => setImportTab("sheets")}
-                  className={`pb-3 px-4 text-xs font-mono font-bold uppercase tracking-wider transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
+                  className={`pb-3 px-4 text-xs font-mono font-bold uppercase tracking-wider transition-colors border-b-2 cursor-pointer flex items-center gap-2 ${
                     importTab === "sheets"
                       ? "border-[#C1121F] text-[#141418]"
                       : "border-transparent text-neutral-400 hover:text-neutral-700"
@@ -720,7 +750,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                     onDragLeave={() => setIsDraggingFile(false)}
                     onDrop={handleFileDrop}
                     onClick={() => fileInputRef.current?.click()}
-                    className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all ${
+                    className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
                       isDraggingFile
                         ? "border-[#C1121F] bg-[#edf2fd]"
                         : "border-[#b5bec6] hover:border-neutral-400 bg-[#edf2fd]"
@@ -805,7 +835,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                       }
                     }}
                     disabled={isSyncing}
-                    className="w-full bg-white border border-[#b5bec6] hover:bg-[#141418] hover:text-white py-3 px-4 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer flex items-center justify-center gap-2"
+                    className="w-full bg-white border border-[#b5bec6] hover:bg-[#141418] hover:text-white py-3 px-4 rounded-xl text-xs font-mono font-bold transition-colors cursor-pointer flex items-center justify-center gap-2"
                   >
                     <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} />
                     <span>{isSyncing ? "Verificando..." : "Descargar y Previsualizar"}</span>
@@ -870,7 +900,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                     <button
                       type="button"
                       onClick={handleApplyImport}
-                      className="flex-1 bg-[#141418] hover:bg-[#C1121F] text-white py-3.5 px-6 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer shadow-md flex items-center justify-center gap-2"
+                      className="flex-1 bg-[#141418] hover:bg-[#C1121F] text-white py-3.5 px-6 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer shadow-md flex items-center justify-center gap-2"
                     >
                       <Check className="w-4 h-4" />
                       <span>Confirmar y Actualizar Catálogo ({previewItems.length} productos)</span>
@@ -881,7 +911,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                         setPreviewItems([]);
                         setPreviewSourceName("");
                       }}
-                      className="bg-white border border-[#b5bec6] hover:bg-neutral-100 text-neutral-600 py-3.5 px-4 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer"
+                      className="bg-white border border-[#b5bec6] hover:bg-neutral-100 text-neutral-600 py-3.5 px-4 rounded-xl text-xs font-mono font-bold transition-colors cursor-pointer"
                     >
                       Limpiar
                     </button>
@@ -903,6 +933,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
             className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
           >
             <motion.div
+              role="dialog" aria-modal="true" aria-label="Catálogo e inventario" data-catalog-dialog tabIndex={-1}
               initial={{ scale: 0.95, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 20 }}
@@ -1027,7 +1058,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                   <button
                     type="button"
                     onClick={handleExportCSV}
-                    className="px-3 py-1.5 bg-[#edf2fd] hover:bg-neutral-200 text-neutral-700 border border-[#b5bec6] rounded-xl text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                    className="px-3 py-1.5 bg-[#edf2fd] hover:bg-neutral-200 text-neutral-700 border border-[#b5bec6] rounded-xl text-xs font-mono font-bold transition-colors cursor-pointer flex items-center gap-1.5"
                   >
                     <Download className="w-3.5 h-3.5" />
                     <span>Descargar Catálogo CSV</span>
@@ -1078,10 +1109,11 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
         <div className="flex items-center gap-3">
           <div
             className={`w-3 h-3 rounded-full ${
-              isSyncing ? "bg-amber-400 animate-ping" : syncError ? "bg-amber-500" : "bg-emerald-500"
+              isSyncing || syncError ? "bg-amber-500" : "bg-emerald-500"
             }`}
           />
-          <div className="text-xs font-sans text-neutral-700">
+          <div role="status" className="text-xs font-sans text-neutral-700">
+            {isSyncing ? "Actualizando catálogo. Puedes seguir usando la copia local." : syncError ? "Usando catálogo local." : null}
             <span className="font-bold text-neutral-900">Catálogo Activo: </span>
             <span className="font-mono font-bold text-[#b5bec6] text-sm">{inventory.length}</span>{" "}
             productos cargados.
@@ -1101,7 +1133,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
               setShowImportModal(true);
               setImportTab("file");
             }}
-            className="flex items-center gap-2 px-3.5 py-2 bg-[#141418] hover:bg-[#C1121F] text-white rounded-xl text-xs font-mono font-bold transition-all cursor-pointer shadow-sm"
+            className="flex items-center gap-2 px-3.5 py-2 bg-[#141418] hover:bg-[#C1121F] text-white rounded-xl text-xs font-mono font-bold transition-colors cursor-pointer shadow-sm"
             title="Cargar nuevo archivo CSV de costos e inventario (ej. INVENTARIO 30SEP26)"
           >
             <Upload className="w-3.5 h-3.5" />
@@ -1114,7 +1146,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
           {/* View Catalog */}
           <button
             onClick={() => setShowCatalogModal(true)}
-            className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-neutral-100 text-neutral-800 border border-[#b5bec6] rounded-xl text-xs font-mono font-bold transition-all cursor-pointer shadow-2xs"
+            className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-neutral-100 text-neutral-800 border border-[#b5bec6] rounded-xl text-xs font-mono font-bold transition-colors cursor-pointer shadow-2xs"
             title="Ver catálogo completo de precios"
           >
             <Eye className="w-3.5 h-3.5 text-neutral-500" />
@@ -1125,7 +1157,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
           <button
             onClick={handleSync}
             disabled={isSyncing}
-            className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-neutral-100 text-neutral-800 border border-[#b5bec6] rounded-xl text-xs font-mono font-bold transition-all cursor-pointer shadow-2xs"
+            className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-neutral-100 text-neutral-800 border border-[#b5bec6] rounded-xl text-xs font-mono font-bold transition-colors cursor-pointer shadow-2xs"
             title="Sincronizar desde Google Sheets en la nube"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin" : ""}`} />
@@ -1135,7 +1167,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
           {/* Export CSV */}
           <button
             onClick={handleExportCSV}
-            className="p-2 bg-white hover:bg-neutral-100 text-neutral-600 hover:text-neutral-900 border border-[#b5bec6] rounded-xl text-xs transition-all cursor-pointer shadow-2xs"
+            className="p-2 bg-white hover:bg-neutral-100 text-neutral-600 hover:text-neutral-900 border border-[#b5bec6] rounded-xl text-xs transition-colors cursor-pointer shadow-2xs"
             title="Descargar copia de respaldo en formato CSV"
           >
             <Download className="w-3.5 h-3.5" />
@@ -1174,7 +1206,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                 onChange={handleSearchChange}
                 onKeyDown={handleSearchKeyDown}
                 placeholder="Escanea código o busca por descripción, depto..."
-                className="w-full bg-[#edf2fd] border border-[#b5bec6] focus:border-[#C1121F] focus:bg-white focus:outline-none rounded-lg px-5 py-4 text-base font-sans text-[#141418] placeholder:text-neutral-400 transition-all shadow-inner"
+                className="w-full bg-[#edf2fd] border border-[#b5bec6] focus:border-[#C1121F] focus:bg-white focus:outline-none rounded-lg px-5 py-4 text-base font-sans text-[#141418] placeholder:text-neutral-400 transition-colors shadow-inner"
               />
               {searchQuery && (
                 <button
@@ -1465,7 +1497,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                       key={bill}
                       type="button"
                       onClick={() => setCashReceived(bill.toString())}
-                      className="flex-1 min-w-[45px] bg-[#edf2fd] hover:bg-[#C1121F] border border-[#b5bec6] hover:border-[#C1121F] hover:text-white text-neutral-700 rounded-lg py-1.5 px-2 text-[11px] font-mono font-bold transition-all text-center cursor-pointer"
+                      className="flex-1 min-w-[45px] bg-[#edf2fd] hover:bg-[#C1121F] border border-[#b5bec6] hover:border-[#C1121F] hover:text-white text-neutral-700 rounded-lg py-1.5 px-2 text-[11px] font-mono font-bold transition-colors text-center cursor-pointer"
                     >
                       ${bill}
                     </button>
@@ -1473,7 +1505,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                   <button
                     type="button"
                     onClick={() => setCashReceived(cartTotal.toString())}
-                    className="flex-1 bg-emerald-50 hover:bg-emerald-600 hover:text-white border border-emerald-200 hover:border-emerald-600 text-emerald-800 rounded-lg py-1.5 px-2 text-[11px] font-mono font-bold transition-all text-center cursor-pointer"
+                    className="flex-1 bg-emerald-50 hover:bg-emerald-600 hover:text-white border border-emerald-200 hover:border-emerald-600 text-emerald-800 rounded-lg py-1.5 px-2 text-[11px] font-mono font-bold transition-colors text-center cursor-pointer"
                   >
                     Exacto
                   </button>
@@ -1518,7 +1550,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                   type="button"
                   onClick={handleFinalizedSale}
                   disabled={cart.length === 0 || (cashReceived !== "" && !isEnoughCash)}
-                  className={`flex-1 rounded-xl text-xs uppercase font-mono tracking-widest font-bold text-center py-4 px-6 transition-all ${
+                  className={`flex-1 rounded-xl text-xs uppercase font-mono tracking-widest font-bold text-center py-4 px-6 transition-colors ${
                     cart.length > 0 && (cashReceived === "" || isEnoughCash)
                       ? "bg-[#141418] hover:bg-[#C1121F] text-white cursor-pointer shadow-sm active:scale-[0.99]"
                       : "bg-neutral-100 text-neutral-400 cursor-not-allowed"
