@@ -400,7 +400,12 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
         setShareError("Este navegador no permite compartir este PDF. No se ha descargado ningún archivo.");
         return;
       }
-      await navigator.share({ files: [file], title: "Corte de Caja - " + data.sucursal });
+      const title = [
+        `Corte de Caja - ${data.sucursal}`,
+        data.cajeroName.trim() && `Cajero: ${data.cajeroName.trim()}`,
+        data.fecha && `Fecha: ${data.fecha}`
+      ].filter(Boolean).join(" | ");
+      await navigator.share({ files: [file], title });
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
       setShareError("No se pudo compartir el PDF. Intenta nuevamente. No se ha descargado ningún archivo.");
