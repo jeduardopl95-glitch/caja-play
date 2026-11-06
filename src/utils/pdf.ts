@@ -224,26 +224,13 @@ export function generateCortePDF(data: CorteCajaData, results: CorteCajaResult) 
   // Bold expected total
   drawTableRow("(=) EFECTIVO NETO ESPERADO EN CAJA:", formatMXN(results.efectivoEsperado), false, true);
 
-  // Print individual consumable breakdown if they exist
-  if (data.ticketsConsumo && data.ticketsConsumo.length > 0) {
-    checkPageBreak(12);
-    doc.setFont("helvetica", "italic");
-    doc.setFontSize(7.5);
-    doc.setTextColor(100, 110, 120);
-    const textCons = "Desglose Consumos: " + data.ticketsConsumo.map(t => `${t.description || "Vale"}: ${formatMXN(t.amount)}`).join(" | ");
-    doc.text(textCons, 22, y, { maxWidth: 170 });
-    y += 5;
-  }
-
   y += 4;
-  for (const [index, adjustment] of (data.ajustesTurno || []).entries()) {
-    const sign = adjustment.type === "sumar" ? "+" : "-";
-    const heading = `Ajuste ${index + 1} (${sign}): ${formatMXN(adjustment.amount)}`;
+  const drawDetailBox = (heading: string, description: string) => {
     const lineHeight = 4;
     const paddingAndHeader = 13;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
-    const lines: string[] = doc.splitTextToSize(adjustment.description?.trim() || "Sin motivo registrado", contentWidth - 8);
+    const lines: string[] = doc.splitTextToSize(description, contentWidth - 8);
 
     for (let offset = 0; offset < lines.length;) {
       checkPageBreak(paddingAndHeader + lineHeight);
@@ -261,6 +248,19 @@ export function generateCortePDF(data: CorteCajaData, results: CorteCajaResult) 
       y += height + 4;
       offset += chunk.length;
     }
+  };
+  for (const [index, consumption] of (data.ticketsConsumo || []).entries()) {
+    drawDetailBox(
+      `Consumo ${index + 1}: ${formatMXN(consumption.amount)}`,
+      consumption.description?.trim() || "Sin nombre registrado"
+    );
+  }
+  for (const [index, adjustment] of (data.ajustesTurno || []).entries()) {
+    const sign = adjustment.type === "sumar" ? "+" : "-";
+    drawDetailBox(
+      `Ajuste ${index + 1} (${sign}): ${formatMXN(adjustment.amount)}`,
+      adjustment.description?.trim() || "Sin motivo registrado"
+    );
   }
   y += 3;
 
