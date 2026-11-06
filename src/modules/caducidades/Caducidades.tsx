@@ -92,11 +92,6 @@ export default function Caducidades() {
                 {stores?.map(name => <option key={name}>{name}</option>)}
               </select>
             </label>
-            <button type="button" className="pricing-reset flex items-center gap-2" disabled={busy} onClick={async () => {
-              setError(""); setNotice("");
-              if ((await db.auth.signOut()).error) setError("No se pudo cerrar la sesión.");
-              else { setStore(""); setRecords(undefined); setProduct(""); setSelected(null); setDate(""); setQuantity("1"); }
-            }}><LogOut size={16} /> Cerrar sesión</button>
           </div>
           {stores?.length === 0 && <p role="status">Tu cuenta todavía no tiene sucursales asignadas.</p>}
           {stores === undefined && !error && <p role="status">Cargando sucursales…</p>}
@@ -156,6 +151,15 @@ export default function Caducidades() {
       )}
       {error && <p role="alert" className="mt-4 text-red-800">{error}</p>}
       {notice && <p role="status" className="mt-4 text-green-800">{notice}</p>}
+      {session && (
+        <div className="mt-10 flex justify-end border-t border-current/15 pt-5">
+        <button type="button" className="pricing-reset min-h-11 flex items-center gap-2" disabled={busy} onClick={async () => {
+          setError(""); setNotice("");
+          if ((await db.auth.signOut()).error) setError("No se pudo cerrar la sesión.");
+          else { setStore(""); setRecords(undefined); setProduct(""); setSelected(null); setDate(""); setQuantity("1"); }
+        }}><LogOut size={16} /> Cerrar sesión</button>
+        </div>
+      )}
     </section>
   );
 }
