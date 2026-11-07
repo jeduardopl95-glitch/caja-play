@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ArrowUpRight, Calculator, CalendarClock, ClipboardCheck, ReceiptText } from "lucide-react";
 import CobroSinLuz from "./modules/cobro/CobroSinLuz";
 import CorteCaja from "./modules/corte/CorteCaja";
 import Calculadora from "./modules/precios/Calculadora";
 import Caducidades from "./modules/caducidades/Caducidades";
-import { syncSheetsInventory } from "./lib/inventorySync";
 
 const modules = [
   { id: "cobro", label: "Cobro sin luz", icon: ReceiptText },
@@ -20,7 +19,6 @@ export default function App() {
     setView(next);
     window.scrollTo(0, 0);
   };
-  useEffect(() => { syncSheetsInventory().catch(() => {}); }, []);
 
   return (
     <div className="workspace min-h-dvh">

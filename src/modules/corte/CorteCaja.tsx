@@ -1,5 +1,7 @@
 // src/modules/corte/CorteCaja.tsx
 import React, { useState, useEffect } from "react";
+import { fechaCancun } from "../../lib/fecha";
+import { conciliarEfectivo } from "../../lib/dinero";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   ArrowLeft, ArrowRight, User, Calendar, CreditCard, DollarSign, Plus, Trash2, 
@@ -50,7 +52,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
         );
 
         return {
-          fecha: parsed.fecha || new Date().toISOString().split("T")[0],
+          fecha: parsed.fecha || fechaCancun(),
           sucursal: parsed.sucursal || "",
           cajeroName: parsed.cajeroName || "",
           tarjetaManana: parsed.tarjetaManana || 0,
@@ -80,7 +82,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
       }
     }
     return {
-      fecha: new Date().toISOString().split("T")[0],
+      fecha: fechaCancun(),
       sucursal: "",
       cajeroName: "",
       tarjetaManana: 0,
@@ -134,7 +136,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
     const totalTerminales = data.terminalSantander + otherTerminalsTotal;
 
     // 3. Difference cards (Formula: Total de terminales - Total de tickets del sistema)
-    const diferenciaTarjetas = totalTerminales - tarjetasTicket;
+    const { diferencia: diferenciaTarjetas } = conciliarEfectivo(totalTerminales, tarjetasTicket);
 
     // 4. Sum of consumption tickets
     const totalTicketsConsumo = data.ticketsConsumo.reduce((sum, t) => sum + t.amount, 0);
@@ -181,14 +183,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
     const efectivoEntregado = efectivoContado - fondoSiguienteTurno;
 
     // Final calculations difference
-    const diferenciaEfectivo = efectivoContado - efectivoEsperado;
-
-    let statusDiferencia: 'exacto' | 'sobrante' | 'faltante' = 'exacto';
-    if (diferenciaEfectivo > 0.01) {
-      statusDiferencia = 'sobrante';
-    } else if (diferenciaEfectivo < -0.01) {
-      statusDiferencia = 'faltante';
-    }
+    const { diferencia: diferenciaEfectivo, estado: statusDiferencia } = conciliarEfectivo(efectivoContado, efectivoEsperado);
 
     return {
       tarjetasTicket,
@@ -415,7 +410,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
   const handleResetWizard = () => {
     if (window.confirm("¿Seguro que deseas iniciar un corte nuevo? Esto restablecerá todos los campos del formulario actual.")) {
       setData({
-        fecha: new Date().toISOString().split("T")[0],
+        fecha: fechaCancun(),
         sucursal: "",
         cajeroName: "",
         tarjetaManana: 0,

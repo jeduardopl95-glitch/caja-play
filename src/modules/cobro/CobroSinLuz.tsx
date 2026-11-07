@@ -27,14 +27,16 @@ import {
   Check
 } from "lucide-react";
 import { Product } from "../../types";
+import { calcularCobro } from "../../lib/dinero";
 import {
   CatalogItem,
-  syncSheetsInventory,
+  syncSharedInventory,
   getSavedInventory,
   saveInventoryLocally,
   parseSheetsCSV,
   exportInventoryToCSV,
-  SHEETS_CSV_URL
+  INVENTORY_OVERRIDE,
+  INVENTORY_SYNC_LABEL
 } from "../../lib/inventorySync";
 
 interface CobroSinLuzProps {
@@ -56,7 +58,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
   });
 
   const [lastSyncDate, setLastSyncDate] = useState<string | null>(() => {
-    return localStorage.getItem("cajaplay_sheets_last_sync") || "Catálogo local activo";
+    return localStorage.getItem(INVENTORY_SYNC_LABEL) || "Catálogo local activo";
   });
 
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
@@ -107,7 +109,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
   const [showImportModal, setShowImportModal] = useState(false);
   const [importTab, setImportTab] = useState<"file" | "paste" | "sheets">("file");
   const [pastedCSV, setPastedCSV] = useState("");
-  const [customSheetUrl, setCustomSheetUrl] = useState(SHEETS_CSV_URL);
+  const [customSheetUrl, setCustomSheetUrl] = useState("");
   const [previewItems, setPreviewItems] = useState<CatalogItem[]>([]);
   const [previewSourceName, setPreviewSourceName] = useState("");
   const [previewError, setPreviewError] = useState<string | null>(null);
@@ -124,7 +126,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
   // Trigger auto sync on mount if needed
   useEffect(() => {
     // Only attempt background sync if not already having custom inventory
-    const saved = localStorage.getItem("cajaplay_sheets_inventory");
+    const saved = localStorage.getItem(INVENTORY_OVERRIDE);
     if (!saved) {
       handleSync();
     }
@@ -165,17 +167,19 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
   const handleSync = async () => {
     setIsSyncing(true);
     setSyncError(null);
-    const res = await syncSheetsInventory(customSheetUrl);
+    const res = await syncSharedInventory();
     if (res.success) {
+      localStorage.removeItem(INVENTORY_OVERRIDE);
+      if (res.lastSync) localStorage.setItem(INVENTORY_SYNC_LABEL, res.lastSync);
       setInventory(res.items);
       setLastSyncDate(res.lastSync);
-      setImportNotification(`Inventario actualizado: ${res.items.length} productos desde Google Sheets`);
+      setImportNotification(`Catálogo compartido actualizado: ${res.items.length} productos`);
       setTimeout(() => setImportNotification(null), 5000);
     } else {
       if (res.items.length > 0) {
-        setInventory(res.items);
+        setInventory(getSavedInventory());
       }
-      if (res.lastSync) {
+      if (res.lastSync && !localStorage.getItem(INVENTORY_OVERRIDE)) {
         setLastSyncDate(res.lastSync);
       }
       setSyncError(res.error || "Sin conexión: utilizando copia local offline");
@@ -504,13 +508,10 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
     }
   };
 
-  const cartSubtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const cartTotal = cartSubtotal;
-  const changeAmount = cashReceived ? Math.max(0, parseFloat(cashReceived) - cartTotal) : 0;
-  const isEnoughCash = cashReceived ? parseFloat(cashReceived) >= cartTotal : false;
+  const { total: cartTotal, diferencia: changeAmount, suficiente: isEnoughCash } = calcularCobro(cart, cashReceived);
 
   const handleFinalizedSale = async () => {
-    if (cart.length === 0) return;
+    if (cart.length === 0 || (cashReceived !== "" && !isEnoughCash)) return;
 
     const now = new Date();
     const pad = (n: number) => n.toString().padStart(2, "0");
@@ -1153,15 +1154,15 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
             <span>Ver Catálogo</span>
           </button>
 
-          {/* Sync Sheets */}
+          {/* Shared catalog sync */}
           <button
             onClick={handleSync}
             disabled={isSyncing}
             className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-neutral-100 text-neutral-800 border border-[#b5bec6] rounded-xl text-xs font-mono font-bold transition-colors cursor-pointer shadow-2xs"
-            title="Sincronizar desde Google Sheets en la nube"
+            title="Actualizar catálogo compartido"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin" : ""}`} />
-            <span>{isSyncing ? "..." : "Sheets"}</span>
+            <span>{isSyncing ? "..." : "Actualizar catálogo"}</span>
           </button>
 
           {/* Export CSV */}
@@ -1461,7 +1462,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
             <div className="p-6 bg-[#edf2fd] border-t border-[#b5bec6] space-y-2.5">
               <div className="flex justify-between text-xs text-neutral-600 font-sans">
                 <span>Subtotal</span>
-                <span className="font-mono">${cartSubtotal.toFixed(2)}</span>
+                <span className="font-mono">${cartTotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-neutral-950 font-medium border-t border-[#b5bec6] pt-3 text-xl">
                 <span className="font-serif font-light">TOTAL</span>

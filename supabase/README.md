@@ -12,3 +12,16 @@ on conflict do nothing;
 ```
 
 Agrega una fila por sucursal autorizada. Comprueba con dos cuentas que cada una solo pueda leer y editar registros de sus sucursales y que una sesión anónima no tenga acceso.
+
+## Catálogo compartido y visitas
+
+Antes de publicar la versión con avisos, aplica la migración
+`202611070001_caducidades_proveedores.sql`. Solo agrega dos columnas
+opcionales a los registros existentes y crea el bucket público `catalogo`.
+
+Sube `src/lib/catalogo.csv` a la raíz del bucket, conservando el nombre `catalogo.csv`.
+El archivo público debe contener únicamente código, producto, precio de
+venta y departamento. No subas el CSV original con costos y mayoreo.
+Las escrituras en el bucket se hacen desde el panel de Supabase, no desde
+la app. Si el archivo remoto no está disponible, se usa la copia en caché
+o el catálogo incluido en la app.
