@@ -234,10 +234,9 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
 
   // Tickets de consumo dynamic list handlers
   const handleAddTicketConsumo = () => {
-    const nextNum = data.ticketsConsumo.length + 1;
     const item: TicketConsumo = {
       id: Date.now().toString(),
-      description: `Vale ${nextNum}`,
+      description: "",
       amount: 0
     };
     setData(prev => ({
@@ -271,10 +270,9 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
 
   // AJUSTES DEL TURNO dynamic list handlers
   const handleAddAjusteTurno = () => {
-    const nextNum = (data.ajustesTurno || []).length + 1;
     const item: AjusteTurno = {
       id: Date.now().toString(),
-      description: `Ajuste ${nextNum}`,
+      description: "",
       amount: 0,
       type: 'restar' // default to subtract (like refunds/cancellations)
     };
@@ -1044,7 +1042,8 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                             <div className="grid grid-cols-2 gap-2">
                               <input
                                 type="text"
-                                placeholder="Descripción"
+                                aria-label={`Nombre del vale ${idx + 1}`}
+                                placeholder="Nombre"
                                 value={ticket.description}
                                 onChange={(e) => handleUpdateTicketConsumo(ticket.id, 'description', e.target.value)}
                                 className="border border-[#b5bec6] text-xs rounded-lg px-2 py-1.5 focus:outline-[#C1121F] font-sans font-medium text-[#141418]"
@@ -1112,7 +1111,8 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                             <div className="grid grid-cols-1 gap-2">
                               <input
                                 type="text"
-                                placeholder="Descripción (ej. Cancelación, Devolución, Error pago...)"
+                                aria-label={`Motivo del ajuste ${idx + 1}`}
+                                placeholder="Motivo"
                                 value={ajuste.description}
                                 onChange={(e) => handleUpdateAjusteTurno(ajuste.id, 'description', e.target.value)}
                                 className="border border-[#b5bec6] text-xs rounded-lg px-2 py-1.5 focus:outline-[#C1121F] font-sans font-medium text-[#141418]"

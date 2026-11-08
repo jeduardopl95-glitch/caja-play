@@ -34,6 +34,7 @@ export default function Caducidades() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [product, setProduct] = useState("");
+  const [barcode, setBarcode] = useState("");
   const [selected, setSelected] = useState<CatalogItem | null>(null);
   const [manualCategory, setManualCategory] = useState("");
   const [date, setDate] = useState("");
@@ -95,10 +96,12 @@ export default function Caducidades() {
     return () => controller.abort();
   }, [store, user, filter, revision]);
 
-  const catalogProduct = selected ?? productoExacto(inventory, product);
-  const matches = product.trim() && !selected ? inventory.filter(item =>
-    item.descripcion.toLowerCase().includes(product.trim().toLowerCase()) || item.codigo.includes(product.trim())
-  ).slice(0, 6) : [];
+  const field = barcode.trim() ? "codigo" : "descripcion";
+  const query = (field === "codigo" ? barcode : product).trim().toLowerCase();
+  const catalogProduct = selected ?? productoExacto(inventory, query, field);
+  const matches = query && !catalogProduct
+    ? inventory.filter(item => item[field].toLowerCase().includes(query)).slice(0, 6)
+    : [];
   const today = fechaCancun();
   const visible = filter === "resueltos" ? resolved : records;
   const avisos = (records ?? []).flatMap(record => {
@@ -131,7 +134,7 @@ export default function Caducidades() {
           <div className="flex flex-wrap gap-4 items-end mb-5">
             <label className="grid gap-1 font-semibold">Sucursal
               <select className="min-h-11 px-3" value={store} disabled={busy || !stores?.length} onChange={e => {
-                setStore(e.target.value); setRecords(undefined); setResolved(undefined); setFilter("pendientes"); setProduct(""); setSelected(null); setManualCategory(""); setDate(""); setQuantity("1"); setError(""); setNotice("");
+                setStore(e.target.value); setRecords(undefined); setResolved(undefined); setFilter("pendientes"); setProduct(""); setBarcode(""); setSelected(null); setManualCategory(""); setDate(""); setQuantity("1"); setError(""); setNotice("");
               }}>
                 <option value="">Selecciona una sucursal</option>
                 {stores?.map(name => <option key={name}>{name}</option>)}
@@ -178,24 +181,36 @@ export default function Caducidades() {
             <div className="pricing-grid">
               <form className="pricing-fields" onSubmit={async e => {
                 e.preventDefault();
-                if (busy || !product.trim()) return;
+                const nombre = catalogProduct?.descripcion || product.trim();
+                if (busy || !nombre) return;
                 setBusy(true); setError(""); setNotice("");
                 const departamento = catalogProduct?.departamento || (manualCategory === "Abarrotes" ? "Abarrotes" : "");
                 const proveedor = chetumalito ? proveedorDe(departamento) || (manualCategory !== "Abarrotes" ? manualCategory : "") : "";
                 const result = await db.from("caducidades").insert({
-                  sucursal: store, producto: catalogProduct?.descripcion || product.trim(), codigo: catalogProduct?.codigo || null, fecha: date, cantidad: Number(quantity),
+                  sucursal: store, producto: nombre, codigo: catalogProduct?.codigo || barcode.trim() || null, fecha: date, cantidad: Number(quantity),
                   departamento: departamento || null, proveedor: proveedor || null
                 }).select(columnas).single();
                 setBusy(false);
                 if (result.error) { setError("No se guardó el registro. Conservamos la captura para que puedas reintentar."); return; }
                 setRecords(previous => previous && [...previous, result.data].sort((a, b) => a.fecha.localeCompare(b.fecha)));
-                setProduct(""); setSelected(null); setManualCategory(""); setDate(""); setQuantity("1"); setFilter("pendientes"); setNotice("Registro guardado.");
+                setProduct(""); setBarcode(""); setSelected(null); setManualCategory(""); setDate(""); setQuantity("1"); setFilter("pendientes"); setNotice("Registro guardado.");
               }}>
-                <label>Producto o código de barras
-                  <input required maxLength={200} value={product} onChange={e => { setProduct(e.target.value); setSelected(null); setManualCategory(""); }} />
+                <label>Nombre del producto
+                  <input type="text" inputMode="text" required={!catalogProduct} maxLength={200} value={product} onChange={e => {
+                    if (catalogProduct) setBarcode("");
+                    setProduct(e.target.value); setSelected(null); setManualCategory("");
+                  }} />
                 </label>
+                <label>Código de barras
+                  <input type="text" inputMode="numeric" autoComplete="off" maxLength={200} value={barcode} onChange={e => {
+                    if (catalogProduct) setProduct("");
+                    setBarcode(e.target.value); setSelected(null); setManualCategory("");
+                  }} />
+                </label>
+                {field === "codigo" && catalogProduct && <p role="status">{catalogProduct.descripcion}</p>}
+                {field === "codigo" && !catalogProduct && !matches.length && <p role="status">No encontramos ese código. Puedes escribir el nombre del producto.</p>}
                 {!!matches.length && <ul className="divide-y divide-neutral-200">
-                  {matches.map(item => <li key={item.id}><button type="button" className="w-full text-left px-2 py-2" onClick={() => { setProduct(item.descripcion); setSelected(item); setManualCategory(""); }}>{item.descripcion}</button></li>)}
+                  {matches.map(item => <li key={item.id}><button type="button" className="w-full text-left px-2 py-2" onClick={() => { setProduct(item.descripcion); setBarcode(item.codigo); setSelected(item); setManualCategory(""); }}>{item.descripcion}</button></li>)}
                 </ul>}
                 {product.trim() && (!catalogProduct || (chetumalito && !proveedorDe(catalogProduct.departamento) && catalogProduct.departamento !== "Abarrotes")) && (
                   <label>{catalogProduct ? "Proveedor (opcional)" : "Abarrotes o proveedor (opcional)"}
@@ -249,7 +264,7 @@ export default function Caducidades() {
         <button type="button" className="pricing-reset min-h-11 flex items-center gap-2" disabled={busy} onClick={async () => {
           setError(""); setNotice("");
           if ((await db.auth.signOut()).error) setError("No se pudo cerrar la sesión.");
-          else { setStore(""); setRecords(undefined); setResolved(undefined); setFilter("pendientes"); setProduct(""); setSelected(null); setManualCategory(""); setDate(""); setQuantity("1"); }
+          else { setStore(""); setRecords(undefined); setResolved(undefined); setFilter("pendientes"); setProduct(""); setBarcode(""); setSelected(null); setManualCategory(""); setDate(""); setQuantity("1"); }
         }}><LogOut size={16} /> Cerrar sesión</button>
         </div>
       )}

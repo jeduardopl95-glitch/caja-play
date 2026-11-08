@@ -11,10 +11,12 @@ export const visitas = [
 
 const normalize = (value: string) => value.normalize("NFD").replace(/\p{Diacritic}/gu, "").trim().toLowerCase();
 
-export function productoExacto(catalogo: CatalogItem[], captura: string) {
+export function productoExacto(catalogo: CatalogItem[], captura: string, campo?: "codigo" | "descripcion") {
   const query = normalize(captura);
   if (!query) return;
-  const matches = catalogo.filter(item => normalize(item.codigo) === query || normalize(item.descripcion) === query);
+  const matches = catalogo.filter(item => campo
+    ? normalize(item[campo]) === query
+    : normalize(item.codigo) === query || normalize(item.descripcion) === query);
   return matches.length === 1 ? matches[0] : undefined;
 }
 export const proveedores = [...new Set(visitas.flatMap(day => [...day.preventa, ...day.mercancia, ...day.directa]))].sort();

@@ -6,6 +6,9 @@ test("manual capture identifies exact, unique products by name or code", () => {
   const frijol = { codigo: "001", descripcion: "Frijol Negro", departamento: "Abarrotes", id: "1", precio: 22 };
   assert.equal(productoExacto([frijol], " frijol NEGRO "), frijol);
   assert.equal(productoExacto([frijol], "001"), frijol);
+  assert.equal(productoExacto([frijol], "001", "codigo"), frijol);
+  assert.equal(productoExacto([frijol], "Frijol Negro", "codigo"), undefined);
+  assert.equal(productoExacto([frijol], "001", "descripcion"), undefined);
   assert.equal(productoExacto([frijol], "Frijol"), undefined);
   assert.equal(productoExacto([frijol, { ...frijol, codigo: "002" }], "Frijol Negro"), undefined);
 });
