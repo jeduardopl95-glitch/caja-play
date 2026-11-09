@@ -12,6 +12,25 @@ const { outputFiles: [bundle] } = await build({
 });
 const inventory: typeof Inventory = await import(`data:text/javascript;base64,${Buffer.from(bundle.contents).toString("base64")}`);
 
+test("CSV export renders potential formulas as text without changing the source", () => {
+  const item = { id: "1", codigo: "001", descripcion: ' =HYPERLINK("x")', precio: 15, departamento: "@SUM(1)" };
+  const csv = inventory.exportInventoryToCSV([item]);
+  assert.match(csv, /"' =HYPERLINK\(""x""\)"/);
+  assert.match(csv, /"'@SUM\(1\)"/);
+  assert.equal(item.descripcion, ' =HYPERLINK("x")');
+});
+
+test("CSV download rejects oversized streams even without Content-Length", async () => {
+  const response = new Response(new ReadableStream({
+    start(controller) {
+      controller.enqueue(new Uint8Array(1024 * 1024));
+      controller.enqueue(new Uint8Array(1024 * 1024 + 1));
+      controller.close();
+    },
+  }));
+  await assert.rejects(() => inventory.leerCSVRemoto(response), /2 MB/);
+});
+
 test("bundled catalog keeps all 1826 products and their sale prices", () => {
   const items = inventory.getSharedInventory();
   assert.equal(items.length, 1826);

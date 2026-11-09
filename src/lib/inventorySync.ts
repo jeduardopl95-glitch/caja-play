@@ -3,6 +3,8 @@ import bundledCatalog from "./catalogo.csv?raw";
 
 export const INVENTORY_OVERRIDE = "cajaplay_inventory_override_v2";
 export const INVENTORY_SYNC_LABEL = "cajaplay_inventory_sync_label_v2";
+export const LIMITE_CSV = 2 * 1024 * 1024;
+export const ERROR_TAMANO_CSV = "El CSV supera el límite de 2 MB.";
 const SHARED_CACHE = "cajaplay_shared_catalog_v2";
 
 export interface CatalogItem {
@@ -163,14 +165,43 @@ export function parseSheetsCSV(csvText: string, shared = false): CatalogItem[] {
  */
 export function exportInventoryToCSV(items: CatalogItem[]): string {
   const header = "Código,Descripcion,Precio,Departamento";
+  const cell = (value: string) => {
+    const prefix = /^[\t\r\n]|^\s*[=+\-@＝＋－＠]/u.test(value) ? "'" : "";
+    return `"${prefix}${value.replace(/"/g, '""')}"`;
+  };
   const rows = items.map(item => {
-    const cod = `"${(item.codigo || "").replace(/"/g, '""')}"`;
-    const desc = `"${(item.descripcion || "").replace(/"/g, '""')}"`;
     const price = `$${item.precio.toFixed(2)}`;
-    const depto = `"${(item.departamento || "General").replace(/"/g, '""')}"`;
-    return `${cod},${desc},${price},${depto}`;
+    return [cell(item.codigo || ""), cell(item.descripcion || ""), price, cell(item.departamento || "General")].join(",");
   });
   return [header, ...rows].join("\n");
+}
+
+export async function leerCSVRemoto(response: Response): Promise<string> {
+  if (!response.ok || !response.body) throw new Error("No se pudo descargar el CSV.");
+  if (Number(response.headers.get("content-length")) > LIMITE_CSV) {
+    await response.body.cancel();
+    throw new Error(ERROR_TAMANO_CSV);
+  }
+  const reader = response.body.getReader();
+  const bytes = new Uint8Array(LIMITE_CSV);
+  let size = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (size + value.length > LIMITE_CSV) {
+        await reader.cancel();
+        throw new Error(ERROR_TAMANO_CSV);
+      }
+      bytes.set(value, size);
+      size += value.length;
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const content = bytes.subarray(0, size);
+  try { return new TextDecoder("utf-8", { fatal: true }).decode(content); }
+  catch { return new TextDecoder("windows-1252").decode(content); }
 }
 
 /**
@@ -225,11 +256,7 @@ async function fetchInventory(): Promise<{
     const project = import.meta.env.VITE_SUPABASE_URL;
     if (!project) throw new Error("Catálogo local precargado");
     const res = await fetch(`${project}/storage/v1/object/public/catalogo/catalogo.csv`, { cache: "no-store" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const bytes = await res.arrayBuffer();
-    let text: string;
-    try { text = new TextDecoder("utf-8", { fatal: true }).decode(bytes); }
-    catch { text = new TextDecoder("windows-1252").decode(bytes); }
+    const text = await leerCSVRemoto(res);
     const parsed = parseSharedCatalog(text);
     if (parsed.length > 0) {
       const nowStr = new Date().toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" });

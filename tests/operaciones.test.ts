@@ -21,10 +21,14 @@ test("un centavo no cuadra y el ruido decimal no crea diferencias", () => {
 });
 
 test("caducidades carga mas de mil registros y no devuelve listas parciales ante errores", async () => {
-  const rows = Array.from({ length: 1051 }, (_, i) => i);
-  assert.deepEqual(await cargarPaginas(async (inicio, fin) => rows.slice(inicio, fin + 1)), rows);
-  await assert.rejects(cargarPaginas(async (inicio, fin) => {
-    if (inicio > 0) throw new Error("sin conexion");
-    return rows.slice(inicio, fin + 1);
+  const rows = Array.from({ length: 1051 }, (_, i) => ({ fecha: "2026-11-10", id: String(i).padStart(4, "0") }));
+  let pendientes = rows;
+  assert.deepEqual(await cargarPaginas<typeof rows[number]>(async (cursor, limite) => {
+    if (cursor) pendientes = rows.slice(1);
+    return pendientes.filter(row => !cursor || row.id > cursor.id).slice(0, limite);
+  }), rows);
+  await assert.rejects(cargarPaginas<typeof rows[number]>(async (cursor, limite) => {
+    if (cursor) throw new Error("sin conexion");
+    return rows.slice(0, limite);
   }), /sin conexion/);
 });

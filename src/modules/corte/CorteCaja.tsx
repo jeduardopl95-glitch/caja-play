@@ -449,6 +449,10 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
       alert("Por favor ingresa la sucursal antes de proceder.");
       return;
     }
+    if (!data.cajeroName.trim()) {
+      alert("Por favor ingresa el nombre del cajero antes de proceder.");
+      return;
+    }
     setCurrentStep(stepNum);
   };
 
@@ -610,8 +614,8 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
 
                 {/* Nombre del cajero */}
                 <div className="flex flex-col gap-2 md:col-span-2">
-                  <label className="text-xs uppercase font-extrabold tracking-wider text-[#141418]">
-                    Nombre del Cajero <span className="text-neutral-600 font-normal italic">(Opcional)</span>
+                  <label htmlFor="corte-cajero" className="text-xs uppercase font-extrabold tracking-wider text-[#141418]">
+                    Nombre del Cajero <span className="text-[#780000]">*</span>
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -619,6 +623,8 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
                     </div>
                     <input
                       type="text"
+                      id="corte-cajero"
+                      aria-required="true"
                       placeholder="Ej. Sofía Rodríguez"
                       value={data.cajeroName}
                       onChange={(e) => setData({ ...data, cajeroName: e.target.value })}
@@ -636,13 +642,7 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
               <div className="flex justify-end pt-4">
                 <button
                   type="button"
-                  onClick={() => {
-                    if (!data.sucursal.trim()) {
-                      alert("Por favor ingresa la sucursal antes de proceder.");
-                      return;
-                    }
-                    setCurrentStep(2);
-                  }}
+                  onClick={() => handleStepClick(2)}
                   className="bg-[#141418] hover:bg-[#b5bec6] active:scale-[0.99] text-white py-3.5 px-8 rounded-xl text-xs uppercase font-sans tracking-widest font-extrabold transition-colors flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
                 >
                   <span>Siguiente: Validación de Tarjetas</span>
@@ -1484,7 +1484,14 @@ export default function CorteCaja({ onBack }: CorteCajaProps) {
             </motion.div>
           )}
           {currentStep === 5 && (
-            <motion.div key="step5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            <motion.div
+              key="step5"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.12 }}
+              className="space-y-6"
+            >
               <h2 className="text-2xl font-serif font-bold text-[#141418]">Resumen del corte</h2>
               <div className="divide-y divide-[#b5bec6]">
                 {previewSections.map(section => (

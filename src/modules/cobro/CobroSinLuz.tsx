@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { Product } from "../../types";
 import { calcularCobro } from "../../lib/dinero";
+import { guardarTicket, guardarVenta, leerCaja } from "./ventas";
 import {
   CatalogItem,
   syncSharedInventory,
@@ -35,6 +36,9 @@ import {
   saveInventoryLocally,
   parseSheetsCSV,
   exportInventoryToCSV,
+  leerCSVRemoto,
+  LIMITE_CSV,
+  ERROR_TAMANO_CSV,
   INVENTORY_OVERRIDE,
   INVENTORY_SYNC_LABEL
 } from "../../lib/inventorySync";
@@ -82,15 +86,8 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
 
   // Cart state
   const [cart, setCart] = useState<Product[]>(() => {
-    const saved = localStorage.getItem("cajaplay_active_cart");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        /* ignore */
-      }
-    }
-    return [];
+    try { return leerCaja(localStorage).cart; }
+    catch { return []; }
   });
 
   // Manual fallback input state (collapsed by default)
@@ -104,6 +101,9 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
   const [showSuccess, setShowSuccess] = useState(false);
   const [lastCompletedSummary, setLastCompletedSummary] = useState("");
   const [copiedNotification, setCopiedNotification] = useState(false);
+  const receiptVersion = useRef(0);
+  const [completedChange, setCompletedChange] = useState<number | null>(null);
+  const [checkoutError, setCheckoutError] = useState("");
 
   // CSV Import Modal & Tools State
   const [showImportModal, setShowImportModal] = useState(false);
@@ -136,16 +136,22 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
   }, []);
 
   useEffect(() => {
-    if (!showImportModal && !showCatalogModal) return;
+    if (!showImportModal && !showCatalogModal && !showSuccess) return;
     const opener = document.activeElement;
-    const dialog = document.querySelector<HTMLElement>('[data-catalog-dialog]');
+    const dialog = document.querySelector<HTMLElement>(showSuccess ? '[data-sale-dialog]' : '[data-catalog-dialog]');
     if (!dialog) return;
-    dialog.focus();
+    const nextSale = dialog.querySelector<HTMLButtonElement>('[data-next-sale]');
+    (nextSale ?? dialog).focus();
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        setShowImportModal(false);
-        setShowCatalogModal(false);
+        if (nextSale) nextSale.click();
+        else {
+          setShowImportModal(false);
+          setShowCatalogModal(false);
+        }
       }
       if (event.key !== "Tab") return;
       const controls = Array.from(dialog.querySelectorAll<HTMLElement>(
@@ -160,9 +166,10 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
     document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
+      document.body.style.overflow = overflow;
+      if (!showSuccess && opener instanceof HTMLElement && opener.isConnected) opener.focus();
     };
-  }, [showImportModal, showCatalogModal]);
+  }, [showImportModal, showCatalogModal, showSuccess]);
 
   const handleSync = async () => {
     setIsSyncing(true);
@@ -188,13 +195,23 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
   };
 
   const saveCart = (newCart: Product[]) => {
-    setCart(newCart);
-    localStorage.setItem("cajaplay_active_cart", JSON.stringify(newCart));
+    try {
+      guardarTicket(localStorage, newCart);
+      setCart(newCart);
+      setCheckoutError("");
+    } catch {
+      setCheckoutError("No se pudo guardar el ticket en este dispositivo.");
+    }
   };
 
   // CSV File Processing
   const processCSVText = (text: string, sourceName: string) => {
     setPreviewError(null);
+    if (new Blob([text]).size > LIMITE_CSV) {
+      setPreviewError(ERROR_TAMANO_CSV);
+      setPreviewItems([]);
+      return;
+    }
     if (!text || !text.trim()) {
       setPreviewError("El contenido o archivo está vacío.");
       setPreviewItems([]);
@@ -216,9 +233,14 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
     }
   };
 
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const previewCSVFile = (file?: File) => {
     if (!file) return;
+    setPreviewItems([]);
+    setPreviewError(null);
+    if (!/\.(csv|txt)$/i.test(file.name) || file.size > LIMITE_CSV) {
+      setPreviewError(file.size > LIMITE_CSV ? ERROR_TAMANO_CSV : "Selecciona un archivo CSV o TXT.");
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target?.result as string;
@@ -230,20 +252,12 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
     reader.readAsText(file, "UTF-8");
   };
 
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => previewCSVFile(e.target.files?.[0]);
+
   const handleFileDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDraggingFile(false);
-    const file = e.dataTransfer.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      processCSVText(text, file.name);
-    };
-    reader.onerror = () => {
-      setPreviewError("Error al leer el archivo arrastrado.");
-    };
-    reader.readAsText(file, "UTF-8");
+    previewCSVFile(e.dataTransfer.files?.[0]);
   };
 
   const handleApplyImport = () => {
@@ -526,7 +540,6 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
     summaryText += `\nTOTAL: $${cartTotal.toFixed(2)}`;
 
     // Guardar historial en localStorage
-    const finishedSales = JSON.parse(localStorage.getItem("cajaplay_completed_sales") || "[]");
     const newSale = {
       id: Date.now().toString(),
       fecha: `${dateStr} ${timeStr}`,
@@ -536,32 +549,42 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
       cambio: changeAmount,
       resumen: summaryText
     };
-    finishedSales.unshift(newSale);
-    localStorage.setItem("cajaplay_completed_sales", JSON.stringify(finishedSales));
-
-    // Copiar automáticamente al portapapeles
     try {
-      await navigator.clipboard.writeText(summaryText);
-      setCopiedNotification(true);
-      setTimeout(() => setCopiedNotification(false), 3000);
-    } catch (err) {
-      /* ignore if permissions issue */
+      if (!guardarVenta(localStorage, newSale)) {
+        setCart(leerCaja(localStorage).cart);
+        setCheckoutError("El ticket cambió. Revísalo antes de cobrar.");
+        return;
+      }
+    } catch {
+      setCheckoutError("No se pudo registrar el cobro. El ticket sigue activo.");
+      return;
     }
 
+    setCheckoutError("");
+    setCart([]);
+    setCompletedChange(cashReceived === "" ? null : changeAmount);
+    setCashReceived("");
+    setCopiedNotification(false);
     setLastCompletedSummary(summaryText);
     setShowSuccess(true);
+    const version = ++receiptVersion.current;
+    try {
+      await navigator.clipboard.writeText(summaryText);
+      if (receiptVersion.current === version) setCopiedNotification(true);
+    } catch { /* The sale is registered even without clipboard access. */ }
   };
 
   const handleManualCopy = async () => {
+    const version = receiptVersion.current;
     try {
       await navigator.clipboard.writeText(lastCompletedSummary);
-      setCopiedNotification(true);
-      setTimeout(() => setCopiedNotification(false), 2500);
+      if (receiptVersion.current === version) setCopiedNotification(true);
     } catch (err) {}
   };
 
   return (
     <div className="labs-cobro max-w-7xl mx-auto px-4 md:px-8 py-8 relative">
+      {checkoutError && <p role="alert" className="mb-4 font-semibold text-red-800">{checkoutError}</p>}
       {/* Toast Notification */}
       <AnimatePresence>
         {importNotification && (
@@ -581,12 +604,14 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
       <AnimatePresence>
         {showSuccess && (
           <motion.div
+            key="sale-success"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
           >
             <motion.div
+              role="dialog" aria-modal="true" aria-labelledby="sale-success-title" data-sale-dialog tabIndex={-1}
               initial={{ scale: 0.95, y: 15 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 15 }}
@@ -596,22 +621,22 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                 <CheckCircle className="w-7 h-7 text-emerald-600" />
               </div>
 
-              <h3 className="font-serif text-2xl font-bold text-[#141418] mb-1">Cobro Registrado</h3>
+              <h3 id="sale-success-title" className="font-serif text-2xl font-bold text-[#141418] mb-1">Cobro Registrado</h3>
 
-              <div className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-mono font-bold py-2.5 px-4 rounded-xl mb-4 flex items-center justify-center gap-2">
+              {copiedNotification && <div role="status" className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-mono font-bold py-2.5 px-4 rounded-xl mb-4 flex items-center justify-center gap-2">
                 <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span>Venta copiada al portapapeles</span>
-              </div>
+              </div>}
 
               {/* Resumen generado */}
               <div className="bg-[#edf2fd] border border-[#b5bec6] rounded-xl p-4 text-left font-mono text-xs text-neutral-800 mb-5 whitespace-pre-wrap max-h-48 overflow-y-auto">
                 {lastCompletedSummary}
               </div>
 
-              {cashReceived !== "" && (
+              {completedChange !== null && (
                 <div className="text-xs font-mono text-[#141418] bg-[#edf2fd] border border-[#b5bec6] p-3 rounded-xl mb-6 flex justify-between items-center px-4">
                   <span>Su cambio:</span>
-                  <span className="text-emerald-700 font-bold text-base">${changeAmount.toFixed(2)}</span>
+                  <span className="text-emerald-700 font-bold text-base">${completedChange.toFixed(2)}</span>
                 </div>
               )}
 
@@ -634,14 +659,13 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                   className="w-full bg-[#edf2fd] hover:bg-neutral-200 text-neutral-700 border border-[#b5bec6] py-3 px-6 rounded-xl text-xs uppercase font-mono tracking-wider font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Copy className="w-3.5 h-3.5" />
-                  <span>{copiedNotification ? "¡Copiado!" : "Volver a copiar texto"}</span>
+                  <span>{copiedNotification ? "¡Copiado!" : "Copiar texto"}</span>
                 </button>
 
                 <button
                   type="button"
+                  data-next-sale
                   onClick={() => {
-                    saveCart([]);
-                    setCashReceived("");
                     setShowSuccess(false);
                     searchInputRef.current?.focus();
                   }}
@@ -824,10 +848,11 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
                     onClick={async () => {
                       setIsSyncing(true);
                       setPreviewError(null);
+                      setPreviewItems([]);
                       try {
                         const res = await fetch(customSheetUrl, { cache: "no-store" });
                         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                        const text = await res.text();
+                        const text = await leerCSVRemoto(res);
                         processCSVText(text, "Google Sheets en Línea");
                       } catch (err: any) {
                         setPreviewError(`Error descargando Google Sheets: ${err?.message || "No responde"}`);

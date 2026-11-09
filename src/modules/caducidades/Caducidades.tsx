@@ -13,11 +13,13 @@ type Registro = { id: string; producto: string; codigo: string | null; departame
 const columnas = "id,producto,codigo,departamento,proveedor,fecha,cantidad,resuelto";
 
 function cargarRegistros(store: string, resuelto: boolean, signal: AbortSignal) {
-  return cargarPaginas(async (inicio, fin) => {
+  return cargarPaginas<Registro>(async (cursor, limite) => {
     if (!db) throw new Error("Supabase no configurado");
-    const result = await db.from("caducidades").select(columnas)
+    const query = db.from("caducidades").select(columnas)
       .eq("sucursal", store).eq("resuelto", resuelto)
-      .order("fecha").order("id").range(inicio, fin).abortSignal(signal);
+      .order("fecha").order("id").limit(limite).abortSignal(signal);
+    if (cursor) query.or(`fecha.gt.${cursor.fecha},and(fecha.eq.${cursor.fecha},id.gt.${cursor.id})`);
+    const result = await query;
     if (result.error) throw result.error;
     return result.data;
   });
@@ -179,7 +181,7 @@ export default function Caducidades() {
           )}
           {store && (
             <div className="pricing-grid">
-              <form className="pricing-fields" onSubmit={async e => {
+              <form onSubmit={async e => {
                 e.preventDefault();
                 const nombre = catalogProduct?.descripcion || product.trim();
                 if (busy || !nombre) return;
@@ -195,6 +197,7 @@ export default function Caducidades() {
                 setRecords(previous => previous && [...previous, result.data].sort((a, b) => a.fecha.localeCompare(b.fecha)));
                 setProduct(""); setBarcode(""); setSelected(null); setManualCategory(""); setDate(""); setQuantity("1"); setFilter("pendientes"); setNotice("Registro guardado.");
               }}>
+                <fieldset className="pricing-fields min-w-0" disabled={busy}>
                 <label>Nombre del producto
                   <input type="text" inputMode="text" required={!catalogProduct} maxLength={200} value={product} onChange={e => {
                     if (catalogProduct) setBarcode("");
@@ -224,6 +227,7 @@ export default function Caducidades() {
                 <label>Fecha de caducidad<input className="min-w-0 max-w-full" required type="date" value={date} onChange={e => setDate(e.target.value)} /></label>
                 <label>Piezas<input required type="number" min="1" max="2147483647" step="1" value={quantity} onChange={e => setQuantity(e.target.value)} /></label>
                 <button className="pricing-reset flex items-center gap-2" disabled={busy || !records}><Plus size={17} />{busy ? "Guardando…" : "Guardar registro"}</button>
+                </fieldset>
               </form>
               <section aria-label="Registros de caducidad">
                 <label className="grid gap-1 font-semibold">Registros de {store}

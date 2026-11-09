@@ -1,8 +1,8 @@
-export async function cargarPaginas<T>(leer: (inicio: number, fin: number) => Promise<T[]>) {
+export async function cargarPaginas<T extends { fecha: string; id: string }>(leer: (cursor: T | undefined, limite: number) => Promise<T[]>) {
   const size = 100;
   const rows: T[] = [];
-  for (let inicio = 0; ; inicio += size) {
-    const page = await leer(inicio, inicio + size - 1);
+  for (;;) {
+    const page = await leer(rows.at(-1), size);
     rows.push(...page);
     if (page.length < size) return rows;
   }
