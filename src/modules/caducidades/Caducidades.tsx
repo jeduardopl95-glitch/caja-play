@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient, type Session } from "@supabase/supabase-js";
-import { Check, LogOut, Plus } from "lucide-react";
+import { Barcode, Check, LogOut, Plus } from "lucide-react";
+import EscanerCodigo from "../../components/EscanerCodigo";
+import { coincidenciasCodigo } from "../../lib/codigos";
 import { getSharedInventory, syncSharedInventory, type CatalogItem } from "../../lib/inventorySync";
 import { fechaCancun } from "../../lib/fecha";
 import { cargarPaginas } from "./paginas";
@@ -37,6 +39,12 @@ export default function Caducidades() {
   const [password, setPassword] = useState("");
   const [product, setProduct] = useState("");
   const [barcode, setBarcode] = useState("");
+  const [scanning, setScanning] = useState(false);
+  const scanButton = useRef<HTMLButtonElement>(null);
+  const closeScanner = () => {
+    setScanning(false);
+    requestAnimationFrame(() => scanButton.current?.focus());
+  };
   const [selected, setSelected] = useState<CatalogItem | null>(null);
   const [manualCategory, setManualCategory] = useState("");
   const [date, setDate] = useState("");
@@ -57,7 +65,10 @@ export default function Caducidades() {
 
   useEffect(() => {
     if (!db) return;
-    const { data } = db.auth.onAuthStateChange((_event, current) => setSession(current));
+    const { data } = db.auth.onAuthStateChange((_event, current) => {
+      if (!current) setScanning(false);
+      setSession(current);
+    });
     return () => data.subscription.unsubscribe();
   }, []);
 
@@ -100,9 +111,12 @@ export default function Caducidades() {
 
   const field = barcode.trim() ? "codigo" : "descripcion";
   const query = (field === "codigo" ? barcode : product).trim().toLowerCase();
-  const catalogProduct = selected ?? productoExacto(inventory, query, field);
+  const codeMatches = field === "codigo" ? coincidenciasCodigo(inventory, query) : [];
+  const catalogProduct = selected ?? (field === "codigo"
+    ? codeMatches.length === 1 ? codeMatches[0] : undefined
+    : productoExacto(inventory, query, field));
   const matches = query && !catalogProduct
-    ? inventory.filter(item => item[field].toLowerCase().includes(query)).slice(0, 6)
+    ? (codeMatches.length > 1 ? codeMatches : inventory.filter(item => item[field].toLowerCase().includes(query))).slice(0, 6)
     : [];
   const today = fechaCancun();
   const visible = filter === "resueltos" ? resolved : records;
@@ -210,12 +224,17 @@ export default function Caducidades() {
                     setBarcode(e.target.value); setSelected(null); setManualCategory("");
                   }} />
                 </label>
+                <button type="button" ref={scanButton} disabled={busy} className="pricing-reset min-h-11 flex items-center gap-2" onClick={() => setScanning(true)}>
+                  <Barcode size={18} aria-hidden="true" /> Escanear código
+                </button>
                 {field === "codigo" && catalogProduct && <p role="status">{catalogProduct.descripcion}</p>}
                 {field === "codigo" && !catalogProduct && !matches.length && <p role="status">No encontramos ese código. Puedes escribir el nombre del producto.</p>}
                 {!!matches.length && <ul className="divide-y divide-neutral-200">
                   {matches.map(item => <li key={item.id}><button type="button" className="w-full text-left px-2 py-2" onClick={() => { setProduct(item.descripcion); setBarcode(item.codigo); setSelected(item); setManualCategory(""); }}>{item.descripcion}</button></li>)}
                 </ul>}
-                {product.trim() && (!catalogProduct || (chetumalito && !proveedorDe(catalogProduct.departamento) && catalogProduct.departamento !== "Abarrotes")) && (
+                {(catalogProduct
+                  ? chetumalito && !proveedorDe(catalogProduct.departamento) && catalogProduct.departamento !== "Abarrotes"
+                  : !!product.trim()) && (
                   <label>{catalogProduct ? "Proveedor (opcional)" : "Abarrotes o proveedor (opcional)"}
                     <select className="min-h-11 px-3" value={manualCategory} onChange={e => setManualCategory(e.target.value)}>
                       <option value="">Sin asignar</option>
@@ -261,6 +280,9 @@ export default function Caducidades() {
           )}
         </>
       )}
+      {scanning && session && store && <EscanerCodigo onClose={closeScanner} onDetected={code => {
+        closeScanner(); setBarcode(code); setProduct(""); setSelected(null); setManualCategory("");
+      }} />}
       {error && <p role="alert" className="mt-4 text-red-800">{error}</p>}
       {notice && <p role="status" className="mt-4 text-green-800">{notice}</p>}
       {session && (

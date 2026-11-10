@@ -28,6 +28,9 @@ import {
 } from "lucide-react";
 import { Product } from "../../types";
 import { calcularCobro } from "../../lib/dinero";
+import { Barcode } from "lucide-react";
+import EscanerCodigo from "../../components/EscanerCodigo";
+import { coincidenciasCodigo } from "../../lib/codigos";
 import { guardarTicket, guardarVenta, leerCaja } from "./ventas";
 import {
   CatalogItem,
@@ -83,6 +86,31 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
     { key: "barcode", label: "Código de barras" }
   ] as const;
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const priceDialog = useRef<HTMLDialogElement>(null);
+  const priceTrigger = useRef<HTMLButtonElement>(null);
+  const [priceLookup, setPriceLookup] = useState<"closed" | "scanning" | { code: string; added: boolean }>("closed");
+  const showingPrice = typeof priceLookup === "object";
+  const priceMatches = typeof priceLookup === "object"
+    ? coincidenciasCodigo<CatalogItem>(inventory, priceLookup.code) : [];
+  const priceProduct = priceMatches.length === 1 ? priceMatches[0] : undefined;
+
+  useEffect(() => {
+    if (!showingPrice || !priceDialog.current) return;
+    const dialog = priceDialog.current;
+    dialog.showModal();
+    dialog.querySelector<HTMLElement>("#price-lookup-title")?.focus();
+    return () => dialog.close();
+  }, [showingPrice]);
+
+  const closePriceLookup = () => {
+    setPriceLookup("closed");
+    requestAnimationFrame(() => priceTrigger.current?.focus());
+  };
+
+  const startPriceLookup = () => {
+    setCheckoutError("");
+    setPriceLookup("scanning");
+  };
 
   // Cart state
   const [cart, setCart] = useState<Product[]>(() => {
@@ -199,8 +227,10 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
       guardarTicket(localStorage, newCart);
       setCart(newCart);
       setCheckoutError("");
+      return true;
     } catch {
       setCheckoutError("No se pudo guardar el ticket en este dispositivo.");
+      return false;
     }
   };
 
@@ -396,11 +426,9 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
 
   // Select product into cart
   const handleSelectProduct = (item: CatalogItem) => {
-    const idx = cart.findIndex((p) => p.codigo === item.codigo && p.name === item.descripcion);
+    const idx = cart.findIndex((p) => p.codigo === item.codigo && p.name === item.descripcion && p.price === item.precio);
     if (idx > -1) {
-      const updated = [...cart];
-      updated[idx].quantity += 1;
-      saveCart(updated);
+      return saveCart(cart.map((product, i) => i === idx ? { ...product, quantity: product.quantity + 1 } : product));
     } else {
       const newProd: Product = {
         id: Date.now().toString() + Math.random().toString(36).slice(2, 5),
@@ -410,7 +438,7 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
         codigo: item.codigo,
         departamento: item.departamento
       };
-      saveCart([...cart, newProd]);
+      return saveCart([...cart, newProd]);
     }
   };
 
@@ -584,6 +612,32 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
 
   return (
     <div className="labs-cobro max-w-7xl mx-auto px-4 md:px-8 py-8 relative">
+      {priceLookup === "scanning" && <EscanerCodigo onClose={closePriceLookup}
+        onDetected={code => setPriceLookup({ code, added: false })} />}
+      {typeof priceLookup === "object" && (
+        <dialog ref={priceDialog} aria-labelledby="price-lookup-title" aria-describedby="price-lookup-result"
+          onCancel={event => { event.preventDefault(); closePriceLookup(); }}
+          className="m-auto w-[calc(100%-2rem)] max-w-md rounded-lg border border-neutral-300 bg-white p-5 text-[#141418] backdrop:bg-black/60">
+          <h2 id="price-lookup-title" tabIndex={-1} className="text-lg font-bold">Precio del producto</h2>
+          <div id="price-lookup-result" className="my-4 break-words">
+            {priceProduct ? <>
+              <p className="font-semibold">{priceProduct.descripcion}</p>
+              <p className="mt-1 text-2xl font-bold tabular-nums">{new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(priceProduct.precio)}</p>
+            </> : <p>{priceMatches.length ? "Este código coincide con más de un producto." : "Producto no encontrado"}</p>}
+            <p className="mt-1 text-sm">{priceLookup.code}</p>
+          </div>
+          {checkoutError && <p role="alert" className="mb-3 text-sm text-red-800">{checkoutError}</p>}
+          <div className="flex flex-wrap gap-2">
+            {priceProduct && <button type="button" disabled={priceLookup.added}
+              className="min-h-11 rounded-lg bg-[#141418] px-3 font-semibold text-white disabled:opacity-60"
+              onClick={() => {
+                if (!priceLookup.added && handleSelectProduct(priceProduct)) setPriceLookup({ ...priceLookup, added: true });
+              }}>{priceLookup.added ? "Agregado al ticket" : "Agregar al ticket"}</button>}
+            <button type="button" className="pricing-reset min-h-11" onClick={startPriceLookup}>Escanear otro</button>
+            <button type="button" className="pricing-reset min-h-11" onClick={closePriceLookup}>Cerrar</button>
+          </div>
+        </dialog>
+      )}
       {checkoutError && <p role="alert" className="mb-4 font-semibold text-red-800">{checkoutError}</p>}
       {/* Toast Notification */}
       <AnimatePresence>
@@ -1180,6 +1234,11 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
           </button>
 
           {/* Shared catalog sync */}
+          <button type="button" ref={priceTrigger} onClick={startPriceLookup}
+            className="flex min-h-11 items-center gap-2 rounded-lg border border-[#b5bec6] bg-white px-3 text-sm font-semibold hover:bg-neutral-100">
+            <Barcode size={17} aria-hidden="true" /> Consultor de precios
+          </button>
+
           <button
             onClick={handleSync}
             disabled={isSyncing}
