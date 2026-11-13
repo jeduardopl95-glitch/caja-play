@@ -1,0 +1,47 @@
+.labs-corte {
+  padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px));
+}
+
+.corte-gesture {
+  touch-action: pan-y pinch-zoom;
+}
+
+.corte-nav {
+  position: fixed;
+  z-index: 40;
+  left: max(12px, calc((100vw - 864px) / 2));
+  right: max(12px, calc((100vw - 864px) / 2));
+  bottom: 8px;
+  padding: 5px 5px calc(5px + env(safe-area-inset-bottom, 0px));
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  background: #141418;
+  border: 1px solid #414147;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px #0004;
+}
+
+.corte-nav button {
+  display: flex;
+  min-width: 0;
+  min-height: 52px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-radius: 5px;
+  color: #dddde0;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.corte-nav button[aria-current="step"] {
+  background: #edf4ee;
+  color: #183d27;
+}
+
+.corte-nav button:focus-visible {
+  outline: 2px solid #c1121f;
+  outline-offset: -2px;
+}

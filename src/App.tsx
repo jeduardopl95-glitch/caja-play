@@ -22,7 +22,7 @@ export default function App() {
 
   return (
     <div className="workspace min-h-dvh">
-      <header className="workspace-header">
+      {view !== "corte" && <header className="workspace-header">
         <div className="workspace-header-inner">
           <button type="button" className="workspace-brand" onClick={() => navigate("inicio")}>Caja Play</button>
           <nav className="workspace-nav" aria-label="Módulos">
@@ -33,7 +33,7 @@ export default function App() {
             ))}
           </nav>
         </div>
-      </header>
+      </header>}
       <main>
         {view === "inicio" && (
           <section className="workspace-home">
