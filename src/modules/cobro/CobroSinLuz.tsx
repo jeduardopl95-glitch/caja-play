@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
-  ArrowLeft,
   Trash2,
   Plus,
   Minus,
@@ -46,10 +45,6 @@ import {
   INVENTORY_SYNC_LABEL
 } from "../../lib/inventorySync";
 
-interface CobroSinLuzProps {
-  onBack: () => void;
-}
-
 function normalizeStr(str: string): string {
   return str
     .toLowerCase()
@@ -58,7 +53,7 @@ function normalizeStr(str: string): string {
     .replace(/\s+/g, "");
 }
 
-export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
+export default function CobroSinLuz() {
   // Inventory state from localStorage or pre-bundled default catalog
   const [inventory, setInventory] = useState<CatalogItem[]>(() => {
     return getSavedInventory();
@@ -1156,23 +1151,6 @@ export default function CobroSinLuz({ onBack }: CobroSinLuzProps) {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* HEADER BACK & OFFLINE TAG */}
-      <div className="mb-6 flex items-center justify-between border-b border-[#b5bec6] pb-4">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 group text-neutral-500 hover:text-[#141418] transition-colors py-2 text-xs font-mono uppercase tracking-widest font-bold cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform text-neutral-400 group-hover:text-[#141418]" />
-          <span>Volver al menú</span>
-        </button>
-        <div className="flex items-center gap-2 bg-[#edf2fd] border border-[#b5bec6] px-3 py-1.5 rounded-full">
-          <div className="w-2 h-2 rounded-full bg-[#C1121F]"></div>
-          <span className="text-[10px] font-mono tracking-widest text-[#b5bec6] uppercase font-bold">
-            Módulo Offline Activo
-          </span>
-        </div>
-      </div>
 
       {/* TITLE & DESCRIPTION */}
       <div className="mb-6 space-y-1">

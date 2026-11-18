@@ -130,7 +130,7 @@ export default function Caducidades() {
   });
 
   return (
-    <section className="pricing">
+    <section className="pricing expirations">
       <h1>Caducidades</h1>
       {!db ? <p role="status">Caducidades aún no está conectado a Supabase.</p> : session === undefined ? <p role="status">Cargando sesión…</p> : !session ? (
         <form className="pricing-fields max-w-md" onSubmit={async e => {

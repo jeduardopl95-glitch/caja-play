@@ -61,13 +61,7 @@ button, h1, h2, h3, h4 { letter-spacing: 0 !important; }
   max-width: 80rem; margin: auto; padding: 10px 16px;
   display: flex; align-items: center; flex-wrap: wrap; gap: 8px 32px;
 }
-.workspace-brand { font-size: 20px; font-weight: 800; padding-inline: 8px; cursor: pointer; }
-.workspace-nav { display: flex; flex-wrap: wrap; gap: 4px; background: transparent !important; }
-.workspace-nav button {
-  display: inline-flex; align-items: center; gap: 7px; padding: 8px 12px;
-  font-size: 13px; font-weight: 600; cursor: pointer;
-}
-.workspace-nav button:hover, .workspace-nav button[aria-current] { background: #f1eee8; color: #141418; }
+.workspace-brand { font-size: 20px; font-weight: 800; padding-inline: 8px; }
 .workspace button:focus-visible { outline: 2px solid #669BBC; outline-offset: 3px; }
 .workspace-home, .pricing { max-width: 64rem; margin: auto; padding: 32px 16px; }
 .workspace-home h1, .pricing h1 { font-size: 28px; margin-bottom: 20px; }
@@ -104,10 +98,9 @@ button, h1, h2, h3, h4 { letter-spacing: 0 !important; }
   .workspace-home ul { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .module-art { min-height: 156px; }
 }
-.workspace-brand, .workspace-nav button, .workspace-home li button, .pricing-reset {
+.workspace-home li button, .pricing-reset {
   transition: scale 140ms cubic-bezier(0.23, 1, 0.32, 1);
 }
-.workspace-brand:active, .workspace-nav button:active,
 .workspace-home li button:active, .pricing-reset:active { scale: 0.98; }
 .pricing-grid { display: grid; gap: 24px; }
 .pricing-fields { display: grid; gap: 16px; }
@@ -155,3 +148,21 @@ body {
   scrollbar-width: none;  /* Firefox */
 }
 
+
+.expirations h1,
+.expirations h2 {
+  color: #592538;
+}
+
+.expirations .pricing-reset {
+  background: #f1d9e0;
+  border-color: #be8799;
+  color: #592538;
+}
+
+.expirations input:focus-visible,
+.expirations select:focus-visible,
+.workspace .expirations button:focus-visible {
+  outline: 2px solid #965269;
+  outline-offset: 2px;
+}
