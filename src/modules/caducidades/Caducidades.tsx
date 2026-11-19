@@ -48,7 +48,8 @@ export default function Caducidades() {
   const [selected, setSelected] = useState<CatalogItem | null>(null);
   const [manualCategory, setManualCategory] = useState("");
   const [date, setDate] = useState("");
-  const [quantity, setQuantity] = useState("1");
+  const [quantity, setQuantity] = useState("");
+  const [screen, setScreen] = useState("menu");
   const [filter, setFilter] = useState("pendientes");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -66,7 +67,7 @@ export default function Caducidades() {
   useEffect(() => {
     if (!db) return;
     const { data } = db.auth.onAuthStateChange((_event, current) => {
-      if (!current) setScanning(false);
+      if (!current) { setScanning(false); setStore(""); setScreen("menu"); setProduct(""); setBarcode(""); setSelected(null); setDate(""); setQuantity(""); }
       setSession(current);
     });
     return () => data.subscription.unsubscribe();
@@ -99,7 +100,7 @@ export default function Caducidades() {
   useEffect(() => {
     setResolved(undefined);
     setResolvedError(false);
-    if (!db || !store || !user || filter !== "resueltos") return;
+    if (!db || !store || !user || screen !== "registros" || filter !== "resueltos") return;
     const controller = new AbortController();
     cargarRegistros(store, true, controller.signal).then(rows => {
       if (!controller.signal.aborted) setResolved(rows);
@@ -107,7 +108,7 @@ export default function Caducidades() {
       if (!controller.signal.aborted) setResolvedError(true);
     });
     return () => controller.abort();
-  }, [store, user, filter, revision]);
+  }, [store, user, screen, filter, revision]);
 
   const field = barcode.trim() ? "codigo" : "descripcion";
   const query = (field === "codigo" ? barcode : product).trim().toLowerCase();
@@ -124,14 +125,14 @@ export default function Caducidades() {
     const departamento = record.departamento ?? (record.codigo ? inventory.find(item => item.codigo === record.codigo)?.departamento : "") ?? "";
     const proveedor = record.proveedor ?? proveedorDe(departamento);
     const dias = diasParaVencer(today, record.fecha);
-    const tipo = tipoAviso(dias, departamento, chetumalito);
+    const tipo = tipoAviso(dias, departamento);
     if (!tipo) return [];
     return [{ ...record, dias, tipo, proveedor, visita: proveedor && chetumalito ? proximaVisita(today, proveedor) : null }];
   });
 
   return (
     <section className="pricing expirations">
-      <h1>Caducidades</h1>
+      {!session && <h1>Caducidades</h1>}
       {!db ? <p role="status">Caducidades aún no está conectado a Supabase.</p> : session === undefined ? <p role="status">Cargando sesión…</p> : !session ? (
         <form className="pricing-fields max-w-md" onSubmit={async e => {
           e.preventDefault();
@@ -147,40 +148,58 @@ export default function Caducidades() {
         </form>
       ) : (
         <>
-          <div className="flex flex-wrap gap-4 items-end mb-5">
-            <label className="grid gap-1 font-semibold">Sucursal
-              <select className="min-h-11 px-3" value={store} disabled={busy || !stores?.length} onChange={e => {
-                setStore(e.target.value); setRecords(undefined); setResolved(undefined); setFilter("pendientes"); setProduct(""); setBarcode(""); setSelected(null); setManualCategory(""); setDate(""); setQuantity("1"); setError(""); setNotice("");
-              }}>
-                <option value="">Selecciona una sucursal</option>
-                {stores?.map(name => <option key={name}>{name}</option>)}
-              </select>
-            </label>
-          </div>
+          {!store ? <>
+            <h2 className="font-bold mb-4">Elige tu tienda</h2>
+            <div className="expiry-menu">
+              {stores?.map(name => <button type="button" className="expiry-option" key={name} disabled={busy} onClick={() => {
+                setStore(name); setScreen("menu"); setRecords(undefined); setResolved(undefined); setFilter("pendientes"); setProduct(""); setBarcode(""); setSelected(null); setManualCategory(""); setDate(""); setQuantity(""); setError(""); setNotice("");
+              }}>{name}</button>)}
+            </div>
+          </> : <>
+            <p className="font-semibold mb-3">{store}</p>
+            <button type="button" className="pricing-reset mb-4" disabled={busy} onClick={() => {
+              if (screen !== "menu") setScreen("menu");
+              else { setStore(""); setProduct(""); setBarcode(""); setSelected(null); setManualCategory(""); setDate(""); setQuantity(""); }
+              setError(""); setNotice(""); window.scrollTo(0, 0);
+            }}>{screen === "menu" ? "Elegir otra tienda" : "Volver a caducidades"}</button>
+            <h2 className="font-bold mb-4">{({menu:"Agrega y consulta tus caducidades", visitas:"Visitas de proveedores", captura:"Ingresar fecha de caducidad", promocion:"Listos para poner en promoción", cambio:"Listos para cambio con proveedor", registros:"Consultar todos los registros"} as Record<string,string>)[screen]}</h2>
+            {screen === "menu" && <div className="expiry-menu">
+              {Object.entries({visitas:"Visitas de proveedores", captura:"Ingresar fecha de caducidad", promocion:"Listos para poner en promoción", cambio:"Listos para cambio con proveedor", registros:"Consultar todos los registros"}).map(([id,label]) => <button type="button" className="expiry-option" key={id} disabled={busy} onClick={() => { setScreen(id); setError(""); setNotice(""); window.scrollTo(0,0); }}>{label}</button>)}
+            </div>}
+          </>}
           {stores?.length === 0 && <p role="status">Tu cuenta todavía no tiene sucursales asignadas.</p>}
           {stores === undefined && !error && <p role="status">Cargando sucursales…</p>}
           {error && (!stores || (store && !records)) && <button type="button" className="pricing-reset" onClick={() => { setError(""); setRevision(n => n + 1); }}>Volver a intentar</button>}
-          {!!avisos.length && (
+          {store && (screen === "promocion" || screen === "cambio") && (
             <section aria-labelledby="caducidades-avisos" className="mb-6 border-y border-current/15 py-4">
-              <h2 id="caducidades-avisos" className="font-bold">Avisos de caducidad</h2>
+              <h3 id="caducidades-avisos" className="sr-only">Avisos de caducidad</h3>
+              {!records && !error && <p role="status">Cargando registros…</p>}
+              {records && !avisos.some(aviso => aviso.tipo === screen) && <p>No hay productos para esta sección.</p>}
               <ul className="divide-y divide-neutral-200">
-                {avisos.map(aviso => (
+                {avisos.filter(aviso => aviso.tipo === screen).map(aviso => (
                   <li key={aviso.id} className="py-2 break-words">
-                    <strong>{aviso.tipo === "promocion" ? "Poner en promoción" : aviso.tipo === "vencido" ? "Vencido" : "Preparar cambio"}:</strong> {aviso.producto} · {aviso.cantidad} piezas
+                    <strong>{aviso.tipo === "promocion" ? "Poner en promoción" : "Preparar cambio"}:</strong> {aviso.producto} · {aviso.cantidad} piezas
                     <p className="text-sm">
                       {aviso.dias === 0 ? "Vence hoy" : aviso.dias > 0 ? `Vence en ${aviso.dias} días` : `Venció hace ${-aviso.dias} días`}
                       {chetumalito && aviso.tipo !== "promocion" && (aviso.visita
                         ? ` · ${aviso.proveedor}: ${aviso.visita.dia} ${aviso.visita.fecha}`
                         : aviso.proveedor ? ` · ${aviso.proveedor}: sin visita para cambios` : " · Sin proveedor")}
                     </p>
+                      {!aviso.resuelto && <button type="button" className="expiry-primary flex items-center gap-2 text-sm font-semibold" disabled={busy} onClick={async () => {
+                        setBusy(true); setError(""); setNotice("");
+                        const result = await db.from("caducidades").update({ resuelto: true }).eq("id", aviso.id).eq("sucursal", store).select("id").single();
+                        setBusy(false);
+                        if (result.error) { setError("No se pudo marcar como resuelto."); return; }
+                        setRecords(previous => previous?.filter(item => item.id !== aviso.id));
+                        setNotice("Registro marcado como resuelto.");
+                      }}><Check size={17} /> Marcar como resuelto</button>}
                   </li>
                 ))}
               </ul>
             </section>
           )}
-          {chetumalito && (
-            <details className="mb-6 border-b border-current/15 pb-3">
-              <summary className="cursor-pointer py-3 font-bold">Visitas de proveedores</summary>
+          {store && screen === "visitas" && (chetumalito ? <section className="mb-6 border-b border-current/15 pb-3">
+
               <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {visitas.map(visita => (
                   <li key={visita.dia}>
@@ -191,14 +210,13 @@ export default function Caducidades() {
                   </li>
                 ))}
               </ul>
-            </details>
-          )}
-          {store && (
+            </section> : <p>No hay calendario disponible para JUNIOR.</p>)}
+          {store && (screen === "captura" || screen === "registros") && (
             <div className="pricing-grid">
-              <form onSubmit={async e => {
+              {screen === "captura" && <form onSubmit={async e => {
                 e.preventDefault();
                 const nombre = catalogProduct?.descripcion || product.trim();
-                if (busy || !nombre) return;
+                if (busy || !nombre || !Number.isInteger(Number(quantity)) || Number(quantity) < 1 || Number(quantity) > 2147483647) return;
                 setBusy(true); setError(""); setNotice("");
                 const departamento = catalogProduct?.departamento || (manualCategory === "Abarrotes" ? "Abarrotes" : "");
                 const proveedor = chetumalito ? proveedorDe(departamento) || (manualCategory !== "Abarrotes" ? manualCategory : "") : "";
@@ -209,7 +227,7 @@ export default function Caducidades() {
                 setBusy(false);
                 if (result.error) { setError("No se guardó el registro. Conservamos la captura para que puedas reintentar."); return; }
                 setRecords(previous => previous && [...previous, result.data].sort((a, b) => a.fecha.localeCompare(b.fecha)));
-                setProduct(""); setBarcode(""); setSelected(null); setManualCategory(""); setDate(""); setQuantity("1"); setFilter("pendientes"); setNotice("Registro guardado.");
+                setProduct(""); setBarcode(""); setSelected(null); setManualCategory(""); setDate(""); setQuantity(""); setFilter("pendientes"); setNotice("Registro guardado.");
               }}>
                 <fieldset className="pricing-fields min-w-0" disabled={busy}>
                 <label>Nombre del producto
@@ -224,10 +242,10 @@ export default function Caducidades() {
                     setBarcode(e.target.value); setSelected(null); setManualCategory("");
                   }} />
                 </label>
-                <button type="button" ref={scanButton} disabled={busy} className="pricing-reset min-h-11 flex items-center gap-2" onClick={() => setScanning(true)}>
+                <button type="button" ref={scanButton} disabled={busy} className="pricing-reset expiry-primary min-h-11 flex items-center gap-2" onClick={() => setScanning(true)}>
                   <Barcode size={18} aria-hidden="true" /> Escanear código
                 </button>
-                {field === "codigo" && catalogProduct && <p role="status">{catalogProduct.descripcion}</p>}
+
                 {field === "codigo" && !catalogProduct && !matches.length && <p role="status">No encontramos ese código. Puedes escribir el nombre del producto.</p>}
                 {!!matches.length && <ul className="divide-y divide-neutral-200">
                   {matches.map(item => <li key={item.id}><button type="button" className="w-full text-left px-2 py-2" onClick={() => { setProduct(item.descripcion); setBarcode(item.codigo); setSelected(item); setManualCategory(""); }}>{item.descripcion}</button></li>)}
@@ -244,11 +262,11 @@ export default function Caducidades() {
                   </label>
                 )}
                 <label>Fecha de caducidad<input className="min-w-0 max-w-full" required type="date" value={date} onChange={e => setDate(e.target.value)} /></label>
-                <label>Piezas<input required type="number" min="1" max="2147483647" step="1" value={quantity} onChange={e => setQuantity(e.target.value)} /></label>
+                <label>Piezas<input required type="number" inputMode="numeric" min="1" max="2147483647" step="1" value={quantity} onChange={e => setQuantity(e.target.value)} /></label>
                 <button className="pricing-reset flex items-center gap-2" disabled={busy || !records}><Plus size={17} />{busy ? "Guardando…" : "Guardar registro"}</button>
                 </fieldset>
-              </form>
-              <section aria-label="Registros de caducidad">
+              </form>}
+              {screen === "registros" && <section aria-label="Registros de caducidad">
                 <label className="grid gap-1 font-semibold">Registros de {store}
                   <select className="min-h-11 px-3" value={filter} disabled={busy} onChange={e => setFilter(e.target.value)}>
                     <option value="pendientes">Pendientes</option><option value="resueltos">Resueltos</option>
@@ -264,7 +282,7 @@ export default function Caducidades() {
                     <li key={record.id} className="py-3">
                       <p className="font-bold break-words">{record.producto}</p>
                       <p className="text-sm">{record.fecha} · {record.cantidad} piezas · {record.resuelto ? "Resuelto" : record.fecha < today ? "Vencido" : record.fecha === today ? "Vence hoy" : diasParaVencer(today, record.fecha) <= 5 ? "Próximo a vencer" : "Vigente"}</p>
-                      {!record.resuelto && <button type="button" className="flex items-center gap-2 text-sm font-semibold" disabled={busy} onClick={async () => {
+                      {!record.resuelto && <button type="button" className="expiry-primary flex items-center gap-2 text-sm font-semibold" disabled={busy} onClick={async () => {
                         setBusy(true); setError(""); setNotice("");
                         const result = await db.from("caducidades").update({ resuelto: true }).eq("id", record.id).eq("sucursal", store).select("id").single();
                         setBusy(false);
@@ -275,13 +293,15 @@ export default function Caducidades() {
                     </li>
                   ))}
                 </ul>
-              </section>
+              </section>}
             </div>
           )}
         </>
       )}
       {scanning && session && store && <EscanerCodigo onClose={closeScanner} onDetected={code => {
-        closeScanner(); setBarcode(code); setProduct(""); setSelected(null); setManualCategory("");
+        const found = coincidenciasCodigo<CatalogItem>(inventory, code);
+        const item = found.length === 1 ? found[0] : null;
+        closeScanner(); setBarcode(code); setProduct(item?.descripcion ?? ""); setSelected(item); setManualCategory("");
       }} />}
       {error && <p role="alert" className="mt-4 text-red-800">{error}</p>}
       {notice && <p role="status" className="mt-4 text-green-800">{notice}</p>}
@@ -290,7 +310,7 @@ export default function Caducidades() {
         <button type="button" className="pricing-reset min-h-11 flex items-center gap-2" disabled={busy} onClick={async () => {
           setError(""); setNotice("");
           if ((await db.auth.signOut()).error) setError("No se pudo cerrar la sesión.");
-          else { setStore(""); setRecords(undefined); setResolved(undefined); setFilter("pendientes"); setProduct(""); setBarcode(""); setSelected(null); setManualCategory(""); setDate(""); setQuantity("1"); }
+          else { setScreen("menu"); setStore(""); setRecords(undefined); setResolved(undefined); setFilter("pendientes"); setProduct(""); setBarcode(""); setSelected(null); setManualCategory(""); setDate(""); setQuantity(""); }
         }}><LogOut size={16} /> Cerrar sesión</button>
         </div>
       )}

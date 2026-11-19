@@ -13,18 +13,19 @@ test("manual capture identifies exact, unique products by name or code", () => {
   assert.equal(productoExacto([frijol, { ...frijol, codigo: "002" }], "Frijol Negro"), undefined);
 });
 
-test("supplier alerts start five days before expiration in Chetumalito", () => {
+test("supplier alerts start five days before expiration in both stores", () => {
   assert.equal(diasParaVencer("2026-11-07", "2026-11-12"), 5);
-  assert.equal(tipoAviso(6, "Coca Cola", true), null);
-  assert.equal(tipoAviso(5, "Coca Cola", true), "cambio");
-  assert.equal(tipoAviso(5, "Coca Cola", false), null);
+  assert.equal(tipoAviso(6, "Coca Cola"), null);
+  assert.equal(tipoAviso(5, "Coca Cola"), "cambio");
+  assert.equal(tipoAviso(0, "Coca Cola"), "cambio");
+  assert.equal(tipoAviso(-1, "Coca Cola"), "cambio");
 });
 
 test("grocery promotions start immediately for a new lot due in 22 days", () => {
-  assert.equal(tipoAviso(31, "Abarrotes", true), null);
-  assert.equal(tipoAviso(30, "Abarrotes", true), "promocion");
-  assert.equal(tipoAviso(22, "Abarrotes", false), "promocion");
-  assert.equal(tipoAviso(-1, "Abarrotes", true), "vencido");
+  assert.equal(tipoAviso(31, "Abarrotes"), null);
+  assert.equal(tipoAviso(30, "Abarrotes"), "promocion");
+  assert.equal(tipoAviso(22, "Abarrotes"), "promocion");
+  assert.equal(tipoAviso(-1, "Abarrotes"), "promocion");
 });
 
 test("next eligible visit skips deliveries and repeats weekly", () => {

@@ -41,7 +41,10 @@ async page => {
   }));
   await page.goto(url);
   await page.getByRole("button",{name:"Caducidades",exact:true}).first().click();
-  await page.getByRole("combobox",{name:"Sucursal",exact:true}).selectOption("CHETUMALITO",{timeout:7000});
+  await page.getByRole("button",{name:"CHETUMALITO",exact:true}).click();
+  await page.getByRole("button",{name:"Ingresar fecha de caducidad",exact:true}).click();
+  if (await page.getByLabel("Piezas").inputValue() !== "") throw new Error("Pieces must start empty");
+  if (await page.getByLabel("Piezas").getAttribute("inputmode") !== "numeric") throw new Error("Numeric keyboard missing");
   const date = page.getByLabel("Fecha de caducidad");
   const pieces = page.getByLabel("Piezas");
   const barcode = page.getByLabel("Código de barras",{exact:true});
@@ -49,7 +52,7 @@ async page => {
   await pieces.fill("3");
   const scan = page.getByRole("button",{name:"Escanear código",exact:true});
   await scan.click({timeout:5000});
-  await page.getByText("Salsa Tabasco 60ml",{exact:true}).waitFor();
+  await page.waitForFunction(() => document.querySelector('input[aria-label="unused"]') || [...document.querySelectorAll("input")].some(el => el.value === "Salsa Tabasco 60ml"));
   if (await barcode.inputValue() !== "11210000834" || await date.inputValue() !== "2027-12-03" || await pieces.inputValue() !== "3" || posts) throw new Error("Scan changed the draft");
   await page.evaluate(()=>{window.cameraMode="late";});
   await scan.click();
@@ -60,7 +63,7 @@ async page => {
   if (await barcode.inputValue() !== "11210000834") throw new Error("Late permission changed the draft");
   await page.evaluate(()=>{window.cameraMode="read";window.nextBarcode="759684031052";});
   await scan.click();
-  await page.getByText("Aceite de Olivo 60ml",{exact:true}).waitFor({timeout:5000});
+  await page.waitForFunction(() => [...document.querySelectorAll("input")].some(el => el.value === "Aceite de Olivo 60ml"));
   await page.getByRole("combobox",{name:"Proveedor (opcional)",exact:true}).waitFor({timeout:5000});
   await page.evaluate(()=>{window.cameraMode="hold";window.testTrack=null;});
   await scan.click();
@@ -76,6 +79,9 @@ async page => {
   });
   await page.getByRole("button",{name:"Iniciar sesión"}).waitFor({timeout:5000});
   await page.evaluate(()=>window.testAuth.postMessage({event:"SIGNED_IN",session:window.testSession}));
+  await page.getByRole("button",{name:"CHETUMALITO",exact:true}).click();
+  await page.getByRole("button",{name:"Ingresar fecha de caducidad",exact:true}).click();
+  await date.fill("2027-12-03"); await pieces.fill("3");
   await scan.waitFor({timeout:5000});
   if (await page.getByRole("dialog",{name:"Escanear código"}).count()) throw new Error("Scanner reopened on sign-in");
   await page.evaluate(()=>{window.cameraMode="deny";});

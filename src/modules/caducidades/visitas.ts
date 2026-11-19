@@ -30,10 +30,9 @@ export function proveedorDe(departamento: string) {
 const dayMs = 86_400_000;
 export const diasParaVencer = (hoy: string, fecha: string) => (Date.parse(fecha) - Date.parse(hoy)) / dayMs;
 
-export function tipoAviso(dias: number, departamento: string, chetumalito: boolean) {
-  if (dias < 0) return "vencido";
+export function tipoAviso(dias: number, departamento: string) {
   if (normalize(departamento) === "abarrotes") return dias <= 30 ? "promocion" : null;
-  return chetumalito && dias <= 5 ? "cambio" : null;
+  return dias <= 5 ? "cambio" : null;
 }
 
 export function proximaVisita(hoy: string, proveedor: string) {

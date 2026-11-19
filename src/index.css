@@ -154,6 +154,10 @@ body {
   color: #592538;
 }
 
+.expiry-menu { display: grid; gap: 16px; max-width: 40rem; }
+.expiry-option { min-height: 56px; padding: 16px; background: white; color: #592538; border: 1px solid #be8799; border-radius: 8px; text-align: left; font-weight: 600; }
+.expirations .expiry-primary { background: #592538; color: white; border: 1px solid #592538; border-radius: 8px; min-height: 44px; padding: 10px 16px; }
+
 .expirations .pricing-reset {
   background: #f1d9e0;
   border-color: #be8799;
