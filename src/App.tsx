@@ -15,6 +15,7 @@ type View = "inicio" | typeof modules[number]["id"];
 
 export default function App() {
   const [view, setView] = useState<View>("inicio");
+  const [expirationBusy, setExpirationBusy] = useState(false);
   const navigate = (next: View) => {
     setView(next);
     window.scrollTo(0, 0);
@@ -33,6 +34,7 @@ export default function App() {
             <div className="flex items-center rounded-lg bg-[#141418] px-3 py-2 text-white">
               <button
                 type="button"
+                disabled={view === "caducidades" && expirationBusy}
                 onClick={() => navigate("inicio")}
                 className="group flex cursor-pointer items-center gap-2 rounded-lg border border-white/50 px-3 py-2 font-sans text-xs font-bold text-white"
               >
@@ -60,7 +62,7 @@ export default function App() {
         {view === "cobro" && <CobroSinLuz />}
         {view === "corte" && <CorteCaja onBack={() => navigate("inicio")} />}
         {view === "precios" && <Calculadora />}
-        {view === "caducidades" && <Caducidades />}
+        {view === "caducidades" && <Caducidades onBusyChange={setExpirationBusy} />}
       </main>
     </div>
   );

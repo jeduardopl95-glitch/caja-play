@@ -27,7 +27,7 @@ function cargarRegistros(store: string, resuelto: boolean, signal: AbortSignal) 
   });
 }
 
-export default function Caducidades() {
+export default function Caducidades({ onBusyChange }: { onBusyChange?: (busy: boolean) => void }) {
   const [session, setSession] = useState<Session | null | undefined>();
   const [stores, setStores] = useState<string[]>();
   const [store, setStore] = useState("");
@@ -57,6 +57,35 @@ export default function Caducidades() {
   const [revision, setRevision] = useState(0);
   const user = session?.user.id;
   const chetumalito = store === "CHETUMALITO";
+  const context = useRef(0);
+  const activeUser = useRef<string | undefined>(undefined);
+  const writing = useRef(false);
+
+  useEffect(() => { onBusyChange?.(busy); }, [busy, onBusyChange]);
+  useEffect(() => () => { context.current++; onBusyChange?.(false); }, [onBusyChange]);
+
+  async function writeOperation<T>(request: () => PromiseLike<{ data: T | null; error: unknown }>, success: (data: T) => void, message: string) {
+    if (writing.current) return;
+    const version = context.current;
+    writing.current = true;
+    setBusy(true); setError(""); setNotice("");
+    try {
+      const result = await request();
+      if (version !== context.current) return;
+      if (result.error || !result.data) throw new Error("No confirmed row");
+      success(result.data);
+    } catch {
+      if (version === context.current) setError(message);
+    } finally {
+      if (version === context.current) { writing.current = false; setBusy(false); }
+    }
+  }
+
+  const resolveRecord = (id: string) => writeOperation(
+    () => db!.from("caducidades").update({ resuelto: true }).eq("id", id).eq("sucursal", store).select("id").single(),
+    () => { setRecords(previous => previous?.filter(item => item.id !== id)); setNotice("Registro marcado como resuelto."); },
+    "No se pudo marcar como resuelto. Puedes reintentar."
+  );
 
   useEffect(() => {
     let active = true;
@@ -67,6 +96,12 @@ export default function Caducidades() {
   useEffect(() => {
     if (!db) return;
     const { data } = db.auth.onAuthStateChange((_event, current) => {
+      if (activeUser.current !== current?.user.id) {
+        activeUser.current = current?.user.id;
+        context.current++; writing.current = false; setBusy(false);
+        setStore(""); setScreen("menu"); setRecords(undefined); setResolved(undefined); setError(""); setNotice("");
+        setProduct(""); setBarcode(""); setSelected(null); setManualCategory(""); setDate(""); setQuantity("");
+      }
       if (!current) { setScanning(false); setStore(""); setScreen("menu"); setProduct(""); setBarcode(""); setSelected(null); setDate(""); setQuantity(""); }
       setSession(current);
     });
@@ -77,8 +112,9 @@ export default function Caducidades() {
     setStores(undefined);
     if (!db || !user) return;
     let active = true;
+    const version = context.current;
     db.from("caducidad_accesos").select("sucursal").order("sucursal").then(result => {
-      if (!active) return;
+      if (!active || version !== context.current) return;
       if (result.error) setError("No se pudieron consultar tus sucursales.");
       else setStores(result.data.map(row => row.sucursal));
     });
@@ -89,10 +125,11 @@ export default function Caducidades() {
     setRecords(undefined);
     if (!db || !store || !user) return;
     const controller = new AbortController();
+    const version = context.current;
     cargarRegistros(store, false, controller.signal).then(rows => {
-      if (!controller.signal.aborted) setRecords(rows);
+      if (!controller.signal.aborted && version === context.current) setRecords(rows);
     }).catch(() => {
-      if (!controller.signal.aborted) setError("No se pudieron cargar los registros.");
+      if (!controller.signal.aborted && version === context.current) setError("No se pudieron cargar los registros.");
     });
     return () => controller.abort();
   }, [store, user, revision]);
@@ -102,10 +139,11 @@ export default function Caducidades() {
     setResolvedError(false);
     if (!db || !store || !user || screen !== "registros" || filter !== "resueltos") return;
     const controller = new AbortController();
+    const version = context.current;
     cargarRegistros(store, true, controller.signal).then(rows => {
-      if (!controller.signal.aborted) setResolved(rows);
+      if (!controller.signal.aborted && version === context.current) setResolved(rows);
     }).catch(() => {
-      if (!controller.signal.aborted) setResolvedError(true);
+      if (!controller.signal.aborted && version === context.current) setResolvedError(true);
     });
     return () => controller.abort();
   }, [store, user, screen, filter, revision]);
@@ -152,14 +190,14 @@ export default function Caducidades() {
             <h2 className="font-bold mb-4">Elige tu tienda</h2>
             <div className="expiry-menu">
               {stores?.map(name => <button type="button" className="expiry-option" key={name} disabled={busy} onClick={() => {
-                setStore(name); setScreen("menu"); setRecords(undefined); setResolved(undefined); setFilter("pendientes"); setProduct(""); setBarcode(""); setSelected(null); setManualCategory(""); setDate(""); setQuantity(""); setError(""); setNotice("");
+                context.current++; setStore(name); setScreen("menu"); setRecords(undefined); setResolved(undefined); setFilter("pendientes"); setProduct(""); setBarcode(""); setSelected(null); setManualCategory(""); setDate(""); setQuantity(""); setError(""); setNotice("");
               }}>{name}</button>)}
             </div>
           </> : <>
             <p className="font-semibold mb-3">{store}</p>
             <button type="button" className="pricing-reset mb-4" disabled={busy} onClick={() => {
               if (screen !== "menu") setScreen("menu");
-              else { setStore(""); setProduct(""); setBarcode(""); setSelected(null); setManualCategory(""); setDate(""); setQuantity(""); }
+              else { context.current++; setStore(""); setProduct(""); setBarcode(""); setSelected(null); setManualCategory(""); setDate(""); setQuantity(""); }
               setError(""); setNotice(""); window.scrollTo(0, 0);
             }}>{screen === "menu" ? "Elegir otra tienda" : "Volver a caducidades"}</button>
             <h2 className="font-bold mb-4">{({menu:"Agrega y consulta tus caducidades", visitas:"Visitas de proveedores", captura:"Ingresar fecha de caducidad", promocion:"Listos para poner en promoción", cambio:"Listos para cambio con proveedor", registros:"Consultar todos los registros"} as Record<string,string>)[screen]}</h2>
@@ -185,14 +223,7 @@ export default function Caducidades() {
                         ? ` · ${aviso.proveedor}: ${aviso.visita.dia} ${aviso.visita.fecha}`
                         : aviso.proveedor ? ` · ${aviso.proveedor}: sin visita para cambios` : " · Sin proveedor")}
                     </p>
-                      {!aviso.resuelto && <button type="button" className="expiry-primary flex items-center gap-2 text-sm font-semibold" disabled={busy} onClick={async () => {
-                        setBusy(true); setError(""); setNotice("");
-                        const result = await db.from("caducidades").update({ resuelto: true }).eq("id", aviso.id).eq("sucursal", store).select("id").single();
-                        setBusy(false);
-                        if (result.error) { setError("No se pudo marcar como resuelto."); return; }
-                        setRecords(previous => previous?.filter(item => item.id !== aviso.id));
-                        setNotice("Registro marcado como resuelto.");
-                      }}><Check size={17} /> Marcar como resuelto</button>}
+                      {!aviso.resuelto && <button type="button" className="expiry-primary flex items-center gap-2 text-sm font-semibold" disabled={busy} onClick={() => void resolveRecord(aviso.id)}><Check size={17} /> Marcar como resuelto</button>}
                   </li>
                 ))}
               </ul>
@@ -217,17 +248,15 @@ export default function Caducidades() {
                 e.preventDefault();
                 const nombre = catalogProduct?.descripcion || product.trim();
                 if (busy || !nombre || !Number.isInteger(Number(quantity)) || Number(quantity) < 1 || Number(quantity) > 2147483647) return;
-                setBusy(true); setError(""); setNotice("");
                 const departamento = catalogProduct?.departamento || (manualCategory === "Abarrotes" ? "Abarrotes" : "");
                 const proveedor = chetumalito ? proveedorDe(departamento) || (manualCategory !== "Abarrotes" ? manualCategory : "") : "";
-                const result = await db.from("caducidades").insert({
+                await writeOperation(() => db.from("caducidades").insert({
                   sucursal: store, producto: nombre, codigo: catalogProduct?.codigo || barcode.trim() || null, fecha: date, cantidad: Number(quantity),
                   departamento: departamento || null, proveedor: proveedor || null
-                }).select(columnas).single();
-                setBusy(false);
-                if (result.error) { setError("No se guardó el registro. Conservamos la captura para que puedas reintentar."); return; }
-                setRecords(previous => previous && [...previous, result.data].sort((a, b) => a.fecha.localeCompare(b.fecha)));
+                }).select(columnas).single(), (row: Registro) => {
+                setRecords(previous => previous && [...previous, row].sort((a, b) => a.fecha.localeCompare(b.fecha)));
                 setProduct(""); setBarcode(""); setSelected(null); setManualCategory(""); setDate(""); setQuantity(""); setFilter("pendientes"); setNotice("Registro guardado.");
+                }, "No se pudo confirmar el guardado. Conservamos la captura. Consulta los registros antes de reintentar.");
               }}>
                 <fieldset className="pricing-fields min-w-0" disabled={busy}>
                 <label>Nombre del producto
@@ -282,14 +311,7 @@ export default function Caducidades() {
                     <li key={record.id} className="py-3">
                       <p className="font-bold break-words">{record.producto}</p>
                       <p className="text-sm">{record.fecha} · {record.cantidad} piezas · {record.resuelto ? "Resuelto" : record.fecha < today ? "Vencido" : record.fecha === today ? "Vence hoy" : diasParaVencer(today, record.fecha) <= 5 ? "Próximo a vencer" : "Vigente"}</p>
-                      {!record.resuelto && <button type="button" className="expiry-primary flex items-center gap-2 text-sm font-semibold" disabled={busy} onClick={async () => {
-                        setBusy(true); setError(""); setNotice("");
-                        const result = await db.from("caducidades").update({ resuelto: true }).eq("id", record.id).eq("sucursal", store).select("id").single();
-                        setBusy(false);
-                        if (result.error) { setError("No se pudo marcar como resuelto."); return; }
-                        setRecords(previous => previous?.filter(item => item.id !== record.id));
-                        setNotice("Registro marcado como resuelto.");
-                      }}><Check size={17} /> Marcar como resuelto</button>}
+                      {!record.resuelto && <button type="button" className="expiry-primary flex items-center gap-2 text-sm font-semibold" disabled={busy} onClick={() => void resolveRecord(record.id)}><Check size={17} /> Marcar como resuelto</button>}
                     </li>
                   ))}
                 </ul>
