@@ -1,21 +1,24 @@
 import { useState } from "react";
-import { ArrowLeft, ArrowUpRight, Calculator, CalendarClock, ClipboardCheck, ReceiptText } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Calculator, CalendarClock, ClipboardCheck, PackageSearch, ReceiptText } from "lucide-react";
 import CobroSinLuz from "./modules/cobro/CobroSinLuz";
 import CorteCaja from "./modules/corte/CorteCaja";
 import Calculadora from "./modules/precios/Calculadora";
 import Caducidades from "./modules/caducidades/Caducidades";
+import Inventario from "./modules/inventario/Inventario";
 
 const modules = [
   { id: "cobro", label: "Cobro sin luz", icon: ReceiptText },
   { id: "corte", label: "Corte de caja", icon: ClipboardCheck },
   { id: "precios", label: "Calculadora de precios", icon: Calculator },
-  { id: "caducidades", label: "Caducidades", icon: CalendarClock }
+  { id: "caducidades", label: "Caducidades", icon: CalendarClock },
+  { id: "inventario", label: "Inventario", icon: PackageSearch }
 ] as const;
 type View = "inicio" | typeof modules[number]["id"];
 
 export default function App() {
   const [view, setView] = useState<View>("inicio");
   const [expirationBusy, setExpirationBusy] = useState(false);
+  const [inventoryBusy, setInventoryBusy] = useState(false);
   const navigate = (next: View) => {
     setView(next);
     window.scrollTo(0, 0);
@@ -34,7 +37,7 @@ export default function App() {
             <div className="flex items-center rounded-lg bg-[#141418] px-3 py-2 text-white">
               <button
                 type="button"
-                disabled={view === "caducidades" && expirationBusy}
+                disabled={(view === "caducidades" && expirationBusy) || (view === "inventario" && inventoryBusy)}
                 onClick={() => navigate("inicio")}
                 className="group flex cursor-pointer items-center gap-2 rounded-lg border border-white/50 px-3 py-2 font-sans text-xs font-bold text-white"
               >
@@ -63,6 +66,7 @@ export default function App() {
         {view === "corte" && <CorteCaja onBack={() => navigate("inicio")} />}
         {view === "precios" && <Calculadora />}
         {view === "caducidades" && <Caducidades onBusyChange={setExpirationBusy} />}
+        {view === "inventario" && <Inventario onBusyChange={setInventoryBusy} />}
       </main>
     </div>
   );
