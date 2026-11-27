@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Barcode, ChartNoAxesColumn, ClipboardList, Download, FileText, History, ListChecks, Save, Share2 } from "lucide-react";
+import { Barcode, ChartNoAxesColumn, ClipboardList, Download, FileText, History, ListChecks, Save, Share2, X } from "lucide-react";
 import EscanerCodigo from "../../components/EscanerCodigo";
 import { abrirAlmacenInventario } from "./almacenamiento";
+import { normalizarCantidad } from "./decimal";
 import { crearIdInventario } from "./identificador";
 import { buscarCodigo, departamentos, importarInventario } from "./importador";
-import { avisoEntrada } from "./movimientos";
+import { avisoEntrada, calcular, corregir } from "./movimientos";
 import { filasInventario } from "./resultados";
 import type { InventarioActivo, Movimiento, ProductoImportado, ProductoInventario } from "./tipos";
 import "./inventario.css";
@@ -18,6 +19,60 @@ const vistas = [
 const operaciones = { conteo: "Conteo", venta: "Venta", entrada: "Entrada" };
 const normalizar = (texto: string) => texto.trim().toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
 const cantidadDecimal = (texto: string) => texto.trim().replace(",", ".");
+const modalidades = ["Sí", "No", "Solo algunas"] as const;
+type Modalidad = typeof modalidades[number];
+const filtros = { conteo: "Conteos", venta: "Ventas", entrada: "Entradas" } as const;
+const tipos = Object.keys(filtros) as Movimiento["tipo"][];
+const formatoHora = new Intl.DateTimeFormat("es-MX", { hour: "numeric", minute: "2-digit", hour12: true });
+const partesBusqueda = (texto: string) => normalizar(texto).split(/[\s\p{Pd}]+/u).filter(Boolean);
+
+function VentaCampos({ cantidad, modalidad, parcial, cambiarModalidad, cambiarParcial }: {
+  cantidad: string; modalidad?: Modalidad; parcial: string;
+  cambiarModalidad: (valor: Modalidad) => void; cambiarParcial: (valor: string) => void;
+}) {
+  return <div className="inv-stack" role="group" aria-labelledby="inv-venta-pregunta">
+    <p id="inv-venta-pregunta"><b>¿Las piezas que vendiste ya habían sido contabilizadas físicamente?</b></p>
+    <div className="inv-segment">{modalidades.map(opcion =>
+      <button key={opcion} type="button" aria-pressed={modalidad === opcion} onClick={() => cambiarModalidad(opcion)}>{opcion}</button>
+    )}</div>
+    {modalidad === "Solo algunas" && <label>{cantidad.trim()
+      ? `De las ${cantidad.trim()} piezas que vendiste, ¿cuántas habías contado previamente?`
+      : "¿Cuántas piezas vendidas habías contado previamente?"}
+      <input inputMode="decimal" required value={parcial} onChange={e => cambiarParcial(e.target.value)} />
+    </label>}
+  </div>;
+}
+
+function evaluarVenta(producto: ProductoInventario, movimientos: readonly Movimiento[], cantidad: string,
+  modalidad?: Modalidad, parcial = "", editada?: Movimiento, intento?: Movimiento) {
+  if (!modalidad || !cantidad.trim() || (modalidad === "Solo algunas" && !parcial.trim())) return;
+  try {
+    const vendidas = normalizarCantidad(cantidadDecimal(cantidad));
+    const contadas = modalidad === "Sí" ? vendidas : modalidad === "No" ? "0" : normalizarCantidad(cantidadDecimal(parcial));
+    if (modalidad === "Solo algunas" && (contadas === "0" || contadas.startsWith("-") || contadas === vendidas)) {
+      return { error: "Las piezas ya contadas deben ser más de cero y menos que el total vendido." };
+    }
+    const historial = movimientos.filter(m => m.codigo === producto.codigo);
+    const antes = calcular(producto, historial);
+    const candidato: Movimiento = { id: "vista-previa", codigo: producto.codigo,
+      fecha: historial.at(-1)?.fecha ?? new Date().toISOString(), tipo: "venta", cantidad: vendidas, contabilizadas: contadas };
+    const despues = editada ? calcular(producto, corregir(producto, historial, editada.id, vendidas, contadas))
+      : intento && historial.some(m => m.id === intento.id) ? antes : calcular(producto, [...historial, candidato]);
+    return { antes, despues, contadas };
+  } catch (causa) {
+    return { error: causa instanceof Error && causa.message !== "Cantidad decimal invalida"
+      ? causa.message : "Introduce una cantidad válida." };
+  }
+}
+
+function VistaPreviaVenta({ venta }: { venta: ReturnType<typeof evaluarVenta> }) {
+  if (!venta) return null;
+  if ("error" in venta) return <p className="inv-review" role="alert">{venta.error}</p>;
+  return <div className="inv-review" aria-label="Vista previa de la venta">
+    <p>Conteo físico: <b>{venta.antes.fisica} → {venta.despues.fisica}</b></p>
+    <p>Existencia ajustada: <b>{venta.antes.ajustada ?? "N/D"} → {venta.despues.ajustada ?? "N/D"}</b></p>
+  </div>;
+}
 
 export default function Inventario({ onBusyChange }: { onBusyChange: (busy: boolean) => void }) {
   const [almacen] = useState(abrirAlmacenInventario);
@@ -32,9 +87,12 @@ export default function Inventario({ onBusyChange }: { onBusyChange: (busy: bool
   const [tipo, setTipo] = useState<Movimiento["tipo"]>("conteo");
   const [cantidad, setCantidad] = useState("");
   const [contabilizadas, setContabilizadas] = useState("");
+  const [modalidad, setModalidad] = useState<Modalidad>();
   const [escaneando, setEscaneando] = useState(false);
   const [mostrarCeros, setMostrarCeros] = useState(false);
-  const [edicion, setEdicion] = useState<{ id: string; cantidad: string; contabilizadas?: string }>();
+  const [edicion, setEdicion] = useState<{ id: string; cantidad: string; contabilizadas?: string; modalidad?: Modalidad }>();
+  const [filtro, setFiltro] = useState<Movimiento["tipo"]>("conteo");
+  const [busquedaHistorial, setBusquedaHistorial] = useState("");
   const [confirmar, setConfirmar] = useState<"nuevo" | "movimiento" | "cero">();
   const [borrarId, setBorrarId] = useState("");
   const [ocupado, setOcupado] = useState(false);
@@ -79,7 +137,7 @@ export default function Inventario({ onBusyChange }: { onBusyChange: (busy: bool
 
   function limpiar() {
     intento.current = undefined;
-    setConsulta(""); setProducto(null); setExterno(""); setCantidad(""); setContabilizadas(""); setTipo("conteo");
+    setConsulta(""); setProducto(null); setExterno(""); setCantidad(""); setContabilizadas(""); setModalidad(undefined); setTipo("conteo");
   }
   function cambiarVista(siguiente: typeof vista) {
     setVista(siguiente); window.scrollTo(0, 0);
@@ -89,7 +147,7 @@ export default function Inventario({ onBusyChange }: { onBusyChange: (busy: bool
     if ((cantidad || externo || edicion || intento.current) && !window.confirm("¿Cambiar de sucursal y descartar la captura sin guardar?")) return;
     actual.current++;
     setSucursal(undefined); setAvance(undefined); setCatalogo([]); setDepto(""); setConflicto(false);
-    setEdicion(undefined); setMostrarCeros(false); setAviso(""); setError(""); limpiar(); cambiarVista("Conteo");
+    setEdicion(undefined); setBusquedaHistorial(""); setMostrarCeros(false); setAviso(""); setError(""); limpiar(); cambiarVista("Conteo");
   }
   function cargar(tienda: Sucursal) {
     setSucursal(tienda);
@@ -99,7 +157,7 @@ export default function Inventario({ onBusyChange }: { onBusyChange: (busy: bool
         setAviso("El inventario anterior ya no está activo.");
       } else if (conflicto && intento.current && resultado && !resultado.movimientos.some(m => m.id === intento.current?.id)) {
         // A rejected revision did not write; retry the same ID after the newly loaded history.
-        intento.current = { ...intento.current, fecha: new Date().toISOString() };
+        intento.current = { ...intento.current, registradoEn: intento.current.registradoEn ?? intento.current.fecha, fecha: new Date().toISOString() };
       }
       setAvance(resultado); setConflicto(false); setConfirmar(undefined);
     });
@@ -122,7 +180,17 @@ export default function Inventario({ onBusyChange }: { onBusyChange: (busy: bool
   const revisados = filas.filter(f => f.producto.original !== null && f.saldo.revision === "revisado").length;
   const opcionales = filas.filter(f => f.saldo.revision === "opcional");
   const filasResultado = filas.filter(f => f.saldo.revision !== "opcional");
-  const movimientoEditado = avance?.movimientos.find(m => m.id === edicion?.id);
+  const venta = tipo === "venta" && producto && avance
+    ? evaluarVenta(producto, avance.movimientos, cantidad, modalidad, contabilizadas, undefined, intento.current) : undefined;
+  const contadores = { conteo: 0, venta: 0, entrada: 0 };
+  const terminos = partesBusqueda(busquedaHistorial);
+  const historialVisible = vista === "Historial" ? (avance?.movimientos ?? []).filter(m => {
+    contadores[m.tipo]++;
+    if (m.tipo !== filtro) return false;
+    if (!terminos.length) return true;
+    const nombre = partesBusqueda(porCodigo.get(m.codigo)?.producto.descripcion ?? "").join("");
+    return terminos.every(t => nombre.includes(t)) || partesBusqueda(m.codigo).join("").includes(terminos.join(""));
+  }).reverse() : [];
   const gruposDepartamento = departamentos(catalogo);
   const productosDepto = catalogo.filter(p => p.departamento === depto);
   const reporteActual = reporte?.base === avance ? reporte : undefined;
@@ -165,10 +233,11 @@ export default function Inventario({ onBusyChange }: { onBusyChange: (busy: bool
   function elegir(p: ProductoInventario) {
     if (esOtro(p)) return;
     intento.current = undefined;
-    setProducto(p); setConsulta(p.codigo); setCantidad(""); setContabilizadas(""); setExterno(""); setError(""); setAviso("");
+    setProducto(p); setConsulta(p.codigo); setCantidad(""); setContabilizadas(""); setModalidad(undefined); setExterno(""); setError(""); setAviso("");
   }
   function guardar(cero = false) {
     if (!avance || !producto || operando.current || conflicto) return;
+    if (tipo === "venta" && (!venta || "error" in venta)) return;
     const p = producto.original === null && !porCodigo.has(producto.codigo)
       ? { ...producto, descripcion: externo.trim() } : producto;
     if (!p.descripcion || (!cero && !cantidad.trim())) { setError("Completa el nombre y la cantidad."); return; }
@@ -176,7 +245,8 @@ export default function Inventario({ onBusyChange }: { onBusyChange: (busy: bool
     void operar(async () => {
       if (!intento.current) {
         const comun = { id: crearIdInventario(), codigo: p.codigo, fecha: new Date().toISOString(), cantidad: cero ? "0" : cantidadDecimal(cantidad) };
-        intento.current = tipo === "venta" ? { ...comun, tipo, contabilizadas: cantidadDecimal(contabilizadas || "0") } : { ...comun, tipo };
+        intento.current = tipo === "venta" && venta && !("error" in venta)
+          ? { ...comun, tipo, contabilizadas: venta.contadas } : { ...comun, tipo: tipo === "entrada" ? "entrada" : "conteo" };
       }
       return almacen.registrar(avance, intento.current, p.original === null ? p : undefined);
     }, guardado => {
@@ -250,22 +320,20 @@ export default function Inventario({ onBusyChange }: { onBusyChange: (busy: bool
               : <p><b>{producto.descripcion}</b> · {producto.codigo}</p>}
             {saldo && <p>Físico: <b>{saldo.fisica}</b> · Ajustado: <b>{saldo.ajustada ?? "N/D"}</b></p>}
             <div className="inv-segment" aria-label="Tipo de operación">
-              {(Object.keys(operaciones) as Movimiento["tipo"][]).map(id => <button type="button" key={id} aria-pressed={tipo === id}
-                onClick={() => { if (tipo !== id) { intento.current = undefined; setTipo(id); } }}>{operaciones[id]}</button>)}
+              {tipos.map(id => <button type="button" key={id} aria-pressed={tipo === id}
+                onClick={() => { if (tipo !== id) { intento.current = undefined; setTipo(id); setModalidad(undefined); setContabilizadas(""); } }}>{operaciones[id]}</button>)}
             </div>
             {entradaPendiente && <p className="inv-review">{entradaPendiente.restante === null
               ? "Puede quedar mercancía ya registrada por entradas. No la cuentes dos veces."
               : "El físico incluye " + entradaPendiente.restante + " piezas registradas por entradas."}</p>}
-            <label>Cantidad<input inputMode="decimal" required value={cantidad} onChange={e => { intento.current = undefined; setCantidad(e.target.value); }} /></label>
+            <label>{tipo === "venta" ? "¿Cuántas piezas vendiste?" : "Cantidad"}<input inputMode="decimal" required value={cantidad} onChange={e => { intento.current = undefined; setCantidad(e.target.value); }} /></label>
             {tipo === "venta" && <>
-              {saldo && saldo.fisica !== "0" && <div className="inv-actions">
-                <button type="button" onClick={() => { intento.current = undefined; setContabilizadas(""); }}>Ninguna contada</button>
-                <button type="button" disabled={!cantidad.trim()} onClick={() => { intento.current = undefined; setContabilizadas(cantidad); }}>Todas contadas</button>
-              </div>}
-              <label>Piezas ya contadas<input inputMode="decimal" placeholder="0" value={contabilizadas}
-                onChange={e => { intento.current = undefined; setContabilizadas(e.target.value); }} /></label>
+              <VentaCampos cantidad={cantidad} modalidad={modalidad} parcial={contabilizadas}
+                cambiarModalidad={valor => { if (valor !== modalidad) { intento.current = undefined; setModalidad(valor); } }}
+                cambiarParcial={valor => { intento.current = undefined; setContabilizadas(valor); }} />
+              <VistaPreviaVenta venta={venta} />
             </>}
-            <button type="submit" className="inv-primary" disabled={conflicto}>Guardar {tipo}</button>
+            <button type="submit" className="inv-primary" disabled={conflicto || (tipo === "venta" && (!venta || "error" in venta))}>Guardar {tipo}</button>
             {tipo === "conteo" && producto.descripcion && <button type="button" disabled={conflicto} onClick={() => {
               if (intento.current?.cantidad !== "0") intento.current = undefined;
               setConfirmar("cero");
@@ -305,26 +373,59 @@ export default function Inventario({ onBusyChange }: { onBusyChange: (busy: bool
       </div>}
       {vista === "Historial" && <div className="inv-stack">
         <h2>Historial</h2>
-        {!avance.movimientos.length && <p>Aún no hay movimientos.</p>}
-        {[...avance.movimientos].reverse().map(m => <div className="inv-row" key={m.id}>
+        <div className="inv-segment" role="group" aria-label="Tipo de movimiento">
+          {tipos.map(id => <button type="button" key={id} disabled={ocupado} aria-pressed={filtro === id} onClick={() => {
+            if (filtro !== id) { setFiltro(id); setBusquedaHistorial(""); }
+          }}>{filtros[id]} ({contadores[id]})</button>)}
+        </div>
+        <div className="inv-search">
+          <label>Buscar en historial<input inputMode="search" autoComplete="off" disabled={ocupado} value={busquedaHistorial}
+            onChange={e => setBusquedaHistorial(e.target.value)} /></label>
+          <button type="button" aria-label="Limpiar búsqueda" title="Limpiar búsqueda" disabled={!busquedaHistorial || ocupado}
+            onClick={() => setBusquedaHistorial("")}><X size={18} /></button>
+        </div>
+        {!!terminos.length && <small role="status">{historialVisible.length} de {contadores[filtro]} movimientos</small>}
+        {!historialVisible.length && <p>{terminos.length ? "No hay movimientos que coincidan." : "Aún no hay movimientos de este tipo."}</p>}
+        {historialVisible.map(m => {
+          const fecha = m.registradoEn ?? m.fecha;
+          const tieneHora = /T\d{2}:\d{2}/.test(fecha) && Number.isFinite(Date.parse(fecha));
+          const productoEditado = porCodigo.get(m.codigo)?.producto;
+          const ventaEditada = edicion?.id === m.id && m.tipo === "venta" && productoEditado
+            ? evaluarVenta(productoEditado, avance.movimientos, edicion.cantidad, edicion.modalidad, edicion.contabilizadas, m) : undefined;
+          return <div className="inv-row" key={m.id}>
           <b>{porCodigo.get(m.codigo)?.producto.descripcion ?? m.codigo}</b>
           <p>{operaciones[m.tipo]} · {m.cantidad}{m.tipo === "venta" && " · " + m.contabilizadas + " ya contadas"}</p>
-          <small>{new Date(m.fecha).toLocaleString("es-MX")}</small>
+          {tieneHora && <small><time dateTime={fecha}>{formatoHora.format(new Date(fecha)).replace(/\s/g, " ").replace(/([ap])\.\s*m\./i, "$1. m.")}</time></small>}
           {edicion?.id === m.id ? <form className="inv-stack" onSubmit={e => {
             e.preventDefault();
             const valores = edicion;
-            void operar(() => almacen.corregir(avance, m.id, cantidadDecimal(valores.cantidad), valores.contabilizadas === undefined ? undefined : cantidadDecimal(valores.contabilizadas)),
+            const contadas = ventaEditada && !("error" in ventaEditada) ? ventaEditada.contadas : undefined;
+            if (m.tipo === "venta" && contadas === undefined) return;
+            void operar(() => almacen.corregir(avance, m.id, cantidadDecimal(valores.cantidad), contadas),
               resultado => { setAvance(resultado); setEdicion(undefined); setAviso("Movimiento actualizado."); });
           }}>
-            <label>Cantidad editada<input required inputMode="decimal" disabled={ocupado} value={edicion.cantidad} onChange={e => setEdicion({ ...edicion, cantidad: e.target.value })} /></label>
-            {movimientoEditado?.tipo === "venta" && <label>Piezas ya contadas<input required inputMode="decimal" disabled={ocupado} value={edicion.contabilizadas} onChange={e => setEdicion({ ...edicion, contabilizadas: e.target.value })} /></label>}
-            <div className="inv-actions"><button className="inv-primary" disabled={ocupado || conflicto}>Guardar cambios</button>
+            <fieldset className="inv-stack" disabled={ocupado}>
+              <label>{m.tipo === "venta" ? "¿Cuántas piezas vendiste?" : "Cantidad editada"}<input required inputMode="decimal"
+                value={edicion.cantidad} onChange={e => setEdicion({ ...edicion, cantidad: e.target.value })} /></label>
+              {m.tipo === "venta" && <>
+                <VentaCampos cantidad={edicion.cantidad} modalidad={edicion.modalidad} parcial={edicion.contabilizadas ?? ""}
+                  cambiarModalidad={modalidad => setEdicion({ ...edicion, modalidad })}
+                  cambiarParcial={contabilizadas => setEdicion({ ...edicion, contabilizadas })} />
+                <VistaPreviaVenta venta={ventaEditada} />
+              </>}
+            </fieldset>
+            <div className="inv-actions"><button className="inv-primary" disabled={ocupado || conflicto ||
+              (m.tipo === "venta" && (!ventaEditada || "error" in ventaEditada))}>Guardar cambios</button>
               <button type="button" disabled={ocupado} onClick={() => setEdicion(undefined)}>Cancelar edición</button></div>
           </form> : <div className="inv-actions">
-            <button type="button" disabled={ocupado || conflicto} onClick={() => setEdicion({ id: m.id, cantidad: m.cantidad, ...(m.tipo === "venta" && { contabilizadas: m.contabilizadas }) })}>Editar</button>
+            <button type="button" disabled={ocupado || conflicto} onClick={() => setEdicion({ id: m.id, cantidad: m.cantidad,
+              ...(m.tipo === "venta" && {
+                contabilizadas: m.contabilizadas,
+                modalidad: m.contabilizadas === "0" ? "No" : m.contabilizadas === m.cantidad ? "Sí" : "Solo algunas"
+              }) })}>Editar</button>
             <button type="button" disabled={ocupado || conflicto} onClick={() => { setBorrarId(m.id); setConfirmar("movimiento"); }}>Eliminar</button>
           </div>}
-        </div>)}
+        </div>; })}
       </div>}
       <div className="inv-actions inv-footer">
         <button type="button" disabled={ocupado || conflicto} onClick={() => void operar(() => almacen.confirmarGuardado(avance.sucursal),

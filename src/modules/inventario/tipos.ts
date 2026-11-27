@@ -23,4 +23,5 @@ export type Movimiento = Readonly<{
   codigo: string;
   cantidad: Cantidad;
   fecha: string;
+  registradoEn?: string;
 } & ({ tipo: "conteo" | "entrada" } | { tipo: "venta"; contabilizadas: Cantidad })>;

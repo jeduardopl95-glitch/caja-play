@@ -6,11 +6,11 @@ function validarMovimiento(m: Movimiento, producto: ProductoInventario) {
     throw new Error("Tipo de movimiento invalido.");
   }
   if (!m.id.trim() || m.codigo !== producto.codigo || !Number.isFinite(Date.parse(m.fecha))) {
-    throw new Error(`Movimiento ${m.id}: identificador, producto o fecha invalidos.`);
+    throw new Error("No se pudo validar el producto o la fecha del movimiento.", { cause: m.id });
   }
   const cantidad = normalizarCantidad(m.cantidad);
   if (cantidad.startsWith("-") || (cantidad === "0" && m.tipo !== "conteo")) {
-    throw new Error(`Movimiento ${m.id}: cantidad no permitida.`);
+    throw new Error("La cantidad debe ser positiva, salvo en un conteo en cero.", { cause: m.id });
   }
   return m.tipo === "venta"
     ? { ...m, cantidad, contabilizadas: normalizarCantidad(m.contabilizadas) }
@@ -23,7 +23,7 @@ export function calcular(producto: ProductoInventario, historial: readonly Movim
     ...historial.flatMap(m => {
       try {
         return m.tipo === "venta" ? [decimal(m.cantidad), decimal(m.contabilizadas)] : [decimal(m.cantidad)];
-      } catch { throw new Error(`Movimiento ${m.id}: cantidad decimal invalida.`); }
+      } catch { throw new Error("Introduce una cantidad válida.", { cause: m.id }); }
     })
   ];
   const escala = valores.reduce((max, valor) => Math.max(max, valor.escala), 0);
@@ -36,8 +36,8 @@ export function calcular(producto: ProductoInventario, historial: readonly Movim
   for (const movimiento of historial) {
     const m = validarMovimiento(movimiento, producto);
     const fecha = Date.parse(m.fecha);
-    if (fecha < fechaAnterior) throw new Error(`Movimiento ${m.id}: fuera de orden cronologico.`);
-    if (ids.has(m.id)) throw new Error(`Identificador de movimiento duplicado: ${m.id}.`);
+    if (fecha < fechaAnterior) throw new Error("El movimiento no está en orden cronológico.", { cause: m.id });
+    if (ids.has(m.id)) throw new Error("El movimiento ya está registrado.", { cause: m.id });
     ids.add(m.id);
     fechaAnterior = fecha;
     const cantidad = unidades(valores[indice++]);
@@ -51,9 +51,8 @@ export function calcular(producto: ProductoInventario, historial: readonly Movim
       recibidasMax += cantidad;
     } else {
       const descontar = unidades(valores[indice++]);
-      if (descontar < 0n || descontar > cantidad || descontar > fisica) {
-        throw new Error(`Movimiento ${m.id}: la venta contabilizada supera la cantidad permitida.`);
-      }
+      if (descontar < 0n || descontar > cantidad) throw new Error("Las piezas ya contadas no pueden superar el total vendido ni ser negativas.", { cause: m.id });
+      if (descontar > fisica) throw new Error("No puedes descontar más piezas de las que has contado físicamente.", { cause: m.id });
       ventas += cantidad;
       fisica -= descontar;
       // Sin lotes solo sabemos los limites de cuantas piezas recibidas quedan.
@@ -83,9 +82,9 @@ export function registrar(producto: ProductoInventario, historial: readonly Movi
   const existente = historial.find(item => item.id === m.id);
   if (existente) {
     const anterior = validarMovimiento(existente, producto);
-    if (anterior.codigo !== m.codigo || anterior.fecha !== m.fecha || anterior.tipo !== m.tipo
+    if (anterior.codigo !== m.codigo || anterior.fecha !== m.fecha || anterior.registradoEn !== m.registradoEn || anterior.tipo !== m.tipo
       || anterior.cantidad !== m.cantidad || (anterior.tipo === "venta" && m.tipo === "venta" && anterior.contabilizadas !== m.contabilizadas)) {
-      throw new Error(`El identificador ${m.id} ya corresponde a otro movimiento.`);
+      throw new Error("La operación corresponde a otro movimiento registrado.", { cause: m.id });
     }
     return historial;
   }

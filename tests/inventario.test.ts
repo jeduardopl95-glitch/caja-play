@@ -65,14 +65,15 @@ test("external stock is unknown; validates chronological edits, deletion and ope
   assert.deepEqual([r.original,r.ajustada,r.fisica,r.diferencia],[null,null,"1",null]);
   const historial = registrar(producto,[conteo],movimiento(2,"venta","8","8"));
   assert.equal(registrar(producto,historial,{...conteo,cantidad:"27.0"}),historial);
-  assert.throws(() => registrar(producto,historial,{...conteo,cantidad:"26"}), /identificador/i);
+  assert.throws(() => registrar(producto,historial,{...conteo,cantidad:"26"}), { message: /otro movimiento/i, cause: "1" });
   assert.throws(() => registrar(producto,historial,{...conteo,id:"nuevo"}), /orden/i);
-  assert.throws(() => corregir(producto,historial,"1","5"),/2/);
-  assert.throws(() => corregir(producto,historial,"1",null),/2/);
+  const insuficiente = { message: "No puedes descontar más piezas de las que has contado físicamente.", cause: "2" };
+  assert.throws(() => corregir(producto,historial,"1","5"), insuficiente);
+  assert.throws(() => corregir(producto,historial,"1",null), insuficiente);
   assert.equal(calcular(producto,corregir(producto,historial,"1","10")).fisica,"2");
   assert.deepEqual(corregir(producto,historial,"2",null),[conteo]);
-  assert.throws(() => registrar(producto,[],movimiento(1,"venta","1","2")),/1/);
-  assert.throws(() => registrar(producto,[],movimiento(1,"entrada","0")),/1/);
+  assert.throws(() => registrar(producto,[],movimiento(1,"venta","1","2")), { message: /total vendido/, cause: "1" });
+  assert.throws(() => registrar(producto,[],movimiento(1,"entrada","0")), { message: /cantidad debe ser positiva/, cause: "1" });
   assert.equal(calcular(producto,[movimiento(1,"venta","31")]).ajustada,"-1");
 });
 

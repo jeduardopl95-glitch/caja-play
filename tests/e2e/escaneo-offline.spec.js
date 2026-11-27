@@ -33,11 +33,24 @@ async page => {
   try {
     await page.reload();
     await page.getByRole("button",{name:"Cobro sin luz",exact:true}).first().click();
+    await page.getByRole("button",{name:"PLAYITA",exact:true}).click();
+    await page.getByText("Catálogo y herramientas",{exact:true}).click();
     await page.getByRole("button",{name:"Consultor de precios",exact:true}).click();
     const result = page.getByRole("dialog",{name:"Precio del producto"});
     await result.getByText("Agua Bonafont 1L",{exact:true}).waitFor({timeout:10000});
     await result.getByText("$16.00",{exact:true}).waitFor();
     if (await page.evaluate(() => window.testCameraTrack.readyState) !== "ended") throw new Error("Video track still active");
-    return "Real ZXing decoded a generated EAN-13 against the offline catalog";
+    await result.getByRole("button",{name:"Cerrar",exact:true}).click();
+    await page.getByRole("button",{name:"Escanear producto",exact:true}).click();
+    await page.getByText("1 artículo",{exact:true}).waitFor();
+    await page.getByRole("button",{name:"F12",exact:true}).click();
+    await page.getByRole("button",{name:"F2",exact:true}).click();
+    await page.getByText(/Venta #001 registrada/).waitFor();
+    await page.reload();
+    await page.getByRole("button",{name:"Cobro sin luz",exact:true}).click();
+    await page.getByRole("button",{name:"PLAYITA",exact:true}).click();
+    await page.getByRole("button",{name:"Historial",exact:true}).click();
+    await page.getByText("Venta #001 · $16.00",{exact:true}).waitFor();
+    return "Real ZXing, checkout, and persisted history verified offline";
   } finally { await context.setOffline(false); }
 }

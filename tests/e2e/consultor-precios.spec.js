@@ -18,10 +18,10 @@ async page => {
       {id:"2",codigo:"0012345678905",descripcion:"A",precio:20,departamento:"General"},
       {id:"3",codigo:"0012345678905",descripcion:"B",precio:30,departamento:"General"},
     ]));
-    const original = Storage.prototype.setItem;
-    Storage.prototype.setItem = function (key, value) {
-      if (key === "cajaplay_checkout" && window.failCheckout) throw new DOMException("Full", "QuotaExceededError");
-      original.call(this, key, value);
+    const original = IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put = function (...args) {
+      if (this.name === "cajas" && window.failCheckout) throw new DOMException("Full", "QuotaExceededError");
+      return original.apply(this, args);
     };
   });
   await page.route(/\/[^/]*(?:zxing_browser|zxing\/browser)[^?]*(?:\?|$)/, route => route.fulfill({
@@ -37,11 +37,17 @@ async page => {
   }));
   await page.goto(url);
   await page.getByRole("button", {name: "Cobro sin luz", exact: true}).first().click();
+  await page.getByRole("button", {name: "PLAYITA", exact: true}).click();
+  await page.getByRole("button", {name: "Recuperar en esta sucursal", exact: true}).click();
+  await page.getByText("Catálogo y herramientas", {exact:true}).click();
   const launch = page.getByRole("button", {name: "Consultor de precios", exact: true});
   await launch.click({timeout: 5000});
   const result = page.getByRole("dialog", {name: "Precio del producto"});
   await result.getByText("$69.00", {exact: true}).waitFor();
-  const quantity = () => page.evaluate(() => JSON.parse(localStorage.getItem("cajaplay_checkout")).cart[0].quantity);
+  const quantity = () => page.evaluate(async () => {
+    const { leer } = await import("/src/modules/cobro/caja.ts");
+    return (await leer("PLAYITA")).cart[0].quantity;
+  });
   if (await quantity() !== 1) throw new Error("Scanning changed the ticket");
   await result.getByRole("button", {name: "Cerrar", exact: true}).click();
   if (await quantity() !== 1) throw new Error("Closing changed the ticket");

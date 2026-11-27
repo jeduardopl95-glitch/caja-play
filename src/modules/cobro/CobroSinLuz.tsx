@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from "motion/react";
 import {
   Trash2,
   Plus,
-  Minus,
   ReceiptText,
   RefreshCw,
   Search,
@@ -12,9 +11,6 @@ import {
   Share2,
   Copy,
   AlertTriangle,
-  PlusCircle,
-  ChevronDown,
-  ChevronUp,
   Upload,
   FileSpreadsheet,
   Download,
@@ -26,11 +22,14 @@ import {
   Check
 } from "lucide-react";
 import { Product } from "../../types";
-import { calcularCobro } from "../../lib/dinero";
+import { crearIdInventario as crearId } from "../inventario/identificador";
+import { actualizar, cambiarVenta, finalizar, hayLegado, leer, limpiarHistorial, migrar, monto, sucursales, totalTicket, type CajaSucursal, type Sucursal, type VentaCaja } from "./caja";
+import { calcularPago, leerCentavos, type CapturaPago } from "./pagos";
+import { articulos, DialogoCaja, FormularioPago, HistorialCaja, LineasTicket, mxn, numeroVenta, resumenVenta } from "./PanelesCaja";
+import "./cobro.css";
 import { Barcode } from "lucide-react";
 import EscanerCodigo from "../../components/EscanerCodigo";
 import { coincidenciasCodigo } from "../../lib/codigos";
-import { guardarTicket, guardarVenta, leerCaja } from "./ventas";
 import {
   CatalogItem,
   syncSharedInventory,
@@ -53,7 +52,13 @@ function normalizeStr(str: string): string {
     .replace(/\s+/g, "");
 }
 
-export default function CobroSinLuz() {
+const palabras = (texto: string) => texto.split(/[\s\p{Pd}]+/u).map(normalizeStr).filter(Boolean);
+const buscarPalabras = (texto: string, consulta: string[]) => {
+  const compacto = palabras(texto).join("");
+  return consulta.length > 0 && consulta.every(p => compacto.includes(p));
+};
+
+export default function CobroSinLuz({ onBusyChange }: { onBusyChange: (ocupado: boolean) => void }) {
   // Inventory state from localStorage or pre-bundled default catalog
   const [inventory, setInventory] = useState<CatalogItem[]>(() => {
     return getSavedInventory();
@@ -103,30 +108,62 @@ export default function CobroSinLuz() {
   };
 
   const startPriceLookup = () => {
-    setCheckoutError("");
+    setErrorCaja("");
     setPriceLookup("scanning");
   };
 
-  // Cart state
-  const [cart, setCart] = useState<Product[]>(() => {
-    try { return leerCaja(localStorage).cart; }
-    catch { return []; }
-  });
+  const [tienda, setTienda] = useState<Sucursal>();
+  const [caja, setCaja] = useState<CajaSucursal>();
+  const [hayCopia, setHayCopia] = useState<boolean>();
+  const [destinoLegado, setDestinoLegado] = useState<Sucursal>();
+  const [ocupado, setOcupado] = useState(false);
+  const operando = useRef(false);
+  const intento = useRef<{ id: string; fecha: string }>();
+  const [errorCaja, setErrorCaja] = useState("");
+  const [conflicto, setConflicto] = useState(false);
+  const [historial, setHistorial] = useState(false);
+  const [busqueda, setBusqueda] = useState(false);
+  const [cantidadBusqueda, setCantidadBusqueda] = useState("1");
+  const [escaneo, setEscaneo] = useState(false);
+  const [captura, setCaptura] = useState<CapturaPago>();
+  const [edicion, setEdicion] = useState<{ venta: VentaCaja; items: { producto: Product; precio: string; cantidad: string }[] }>();
+  const [ultima, setUltima] = useState<VentaCaja>();
+  const [confirmacion, setConfirmacion] = useState<VentaCaja | "historial" | "ticket">();
+  const [copiado, setCopiado] = useState(false);
+  const copiaActual = useRef<string>();
+  const cart = caja?.cart ?? [];
+  const ticketTotal = totalTicket(cart);
+
+  async function operar<T>(accion: () => Promise<T>, listo: (dato: T) => void) {
+    if (operando.current) return false;
+    operando.current = true;
+    setOcupado(true); onBusyChange(true); setErrorCaja("");
+    try { listo(await accion()); return true; }
+    catch (error) {
+      const mensaje = error instanceof Error && !(error instanceof DOMException) ? error.message : "No se pudo guardar en este dispositivo. Puedes reintentar.";
+      setErrorCaja(mensaje);
+      if (mensaje.includes("Otra pestaña")) setConflicto(true);
+      return false;
+    } finally { operando.current = false; setOcupado(false); onBusyChange(false); }
+  }
+
+  const revisarLegado = () => void operar(hayLegado, setHayCopia);
+  const abrirTienda = (sucursal: Sucursal, recuperar = false) => void operar(
+    () => recuperar ? migrar(sucursal) : leer(sucursal),
+    datos => {
+      setTienda(sucursal); setCaja(datos); setHayCopia(false); setDestinoLegado(undefined);
+      setHistorial(false); setUltima(undefined); setCopiado(false); setConflicto(false);
+      copiaActual.current = undefined;
+      setManualName(""); setManualPrice(""); setManualQty("1"); setShowManualFallback(false);
+      setCaptura(undefined); setBusqueda(false); intento.current = undefined;
+    }
+  );
 
   // Manual fallback input state (collapsed by default)
   const [showManualFallback, setShowManualFallback] = useState(false);
   const [manualName, setManualName] = useState("");
   const [manualPrice, setManualPrice] = useState("");
   const [manualQty, setManualQty] = useState("1");
-
-  // Cash payment state
-  const [cashReceived, setCashReceived] = useState("");
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [lastCompletedSummary, setLastCompletedSummary] = useState("");
-  const [copiedNotification, setCopiedNotification] = useState(false);
-  const receiptVersion = useRef(0);
-  const [completedChange, setCompletedChange] = useState<number | null>(null);
-  const [checkoutError, setCheckoutError] = useState("");
 
   // CSV Import Modal & Tools State
   const [showImportModal, setShowImportModal] = useState(false);
@@ -153,28 +190,20 @@ export default function CobroSinLuz() {
     if (!saved) {
       handleSync();
     }
-    if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
-      searchInputRef.current?.focus();
-    }
+    revisarLegado();
   }, []);
 
   useEffect(() => {
-    if (!showImportModal && !showCatalogModal && !showSuccess) return;
+    if (!showImportModal && !showCatalogModal) return;
     const opener = document.activeElement;
-    const dialog = document.querySelector<HTMLElement>(showSuccess ? '[data-sale-dialog]' : '[data-catalog-dialog]');
+    const dialog = document.querySelector<HTMLElement>('[data-catalog-dialog]');
     if (!dialog) return;
-    const nextSale = dialog.querySelector<HTMLButtonElement>('[data-next-sale]');
-    (nextSale ?? dialog).focus();
+    dialog.focus();
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        event.preventDefault();
-        if (nextSale) nextSale.click();
-        else {
-          setShowImportModal(false);
-          setShowCatalogModal(false);
-        }
+        event.preventDefault(); setShowImportModal(false); setShowCatalogModal(false);
       }
       if (event.key !== "Tab") return;
       const controls = Array.from(dialog.querySelectorAll<HTMLElement>(
@@ -190,9 +219,9 @@ export default function CobroSinLuz() {
     return () => {
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = overflow;
-      if (!showSuccess && opener instanceof HTMLElement && opener.isConnected) opener.focus();
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
     };
-  }, [showImportModal, showCatalogModal, showSuccess]);
+  }, [showImportModal, showCatalogModal]);
 
   const handleSync = async () => {
     setIsSyncing(true);
@@ -217,17 +246,9 @@ export default function CobroSinLuz() {
     setIsSyncing(false);
   };
 
-  const saveCart = (newCart: Product[]) => {
-    try {
-      guardarTicket(localStorage, newCart);
-      setCart(newCart);
-      setCheckoutError("");
-      return true;
-    } catch {
-      setCheckoutError("No se pudo guardar el ticket en este dispositivo.");
-      return false;
-    }
-  };
+  const saveCart = (nuevo: Product[]) => tienda && caja && !conflicto
+    ? operar(() => actualizar(tienda, caja.revision, {cart: nuevo}), datos => { setCaja(datos); setUltima(undefined); })
+    : Promise.resolve(false);
 
   // CSV File Processing
   const processCSVText = (text: string, sourceName: string) => {
@@ -392,13 +413,10 @@ export default function CobroSinLuz() {
       return candidates.filter((item) => item.codigo.toLowerCase() === codeQuery);
     }
 
-    // Búsqueda general automática en: Código de barras, Descripción, Departamento
-    return candidates.filter((item) => {
-      const cod = item.codigo.toLowerCase();
-      const desc = item.descripcion.toLowerCase();
-      const dep = item.departamento.toLowerCase();
-      return cod.includes(q) || desc.includes(q) || dep.includes(q);
-    });
+    const terminos = palabras(q);
+    return candidates.filter(item => item.codigo.toLowerCase().includes(q)
+      || item.descripcion.toLowerCase().includes(q) || item.departamento.toLowerCase().includes(q)
+      || buscarPalabras(item.descripcion, terminos) || buscarPalabras(item.departamento, terminos));
   }, [searchQuery, inventory, searchFilters]);
 
   // Filtered list for Catalog Modal
@@ -419,191 +437,129 @@ export default function CobroSinLuz() {
     return list;
   }, [inventory, catalogDepto, catalogSearch]);
 
-  // Select product into cart
-  const handleSelectProduct = (item: CatalogItem) => {
-    const idx = cart.findIndex((p) => p.codigo === item.codigo && p.name === item.descripcion && p.price === item.precio);
-    if (idx > -1) {
-      return saveCart(cart.map((product, i) => i === idx ? { ...product, quantity: product.quantity + 1 } : product));
-    } else {
-      const newProd: Product = {
-        id: Date.now().toString() + Math.random().toString(36).slice(2, 5),
-        name: item.descripcion,
-        price: item.precio,
-        quantity: 1,
-        codigo: item.codigo,
-        departamento: item.departamento
-      };
-      return saveCart([...cart, newProd]);
+  const agregar = async (datos: Omit<Product, "id">) => {
+    if (!Number.isSafeInteger(datos.quantity) || datos.quantity < 1 || !Number.isFinite(datos.price) || datos.price < 0) {
+      setErrorCaja("Revisa el precio y la cantidad."); return false;
     }
+    if (edicion) {
+      const indice = edicion.items.findIndex(({ producto, precio }) => producto.codigo === datos.codigo
+        && producto.name.toLowerCase() === datos.name.toLowerCase() && Number(precio.replace(",", ".")) === datos.price);
+      setEdicion({ ...edicion, items: indice >= 0
+        ? edicion.items.map((p, i) => i === indice ? { ...p, cantidad: String(Number(p.cantidad) + datos.quantity) } : p)
+        : [...edicion.items, { producto: { ...datos, id: crearId() }, precio: String(datos.price), cantidad: String(datos.quantity) }] });
+      return true;
+    }
+    const indice = cart.findIndex(p => p.codigo === datos.codigo && p.name.toLowerCase() === datos.name.toLowerCase() && p.price === datos.price);
+    return saveCart(indice >= 0
+      ? cart.map((p, i) => i === indice ? { ...p, quantity: p.quantity + datos.quantity } : p)
+      : [...cart, { ...datos, id: crearId() }]);
   };
 
-  // Barcode scanner handling (USB / Bluetooth send Enter)
-  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      const raw = searchQuery.trim().replace(/^@/, "");
-      if (!raw) return;
-
-      // 1. Coincidencia exacta de código de barras
-      const exactBarcodeMatch = inventory.find((p) => p.codigo.toLowerCase() === raw.toLowerCase());
-      if (exactBarcodeMatch) {
-        handleSelectProduct(exactBarcodeMatch);
-        setSearchQuery("");
-        searchInputRef.current?.focus();
-        return;
-      }
-
-      // 2. Si hay exactamente 1 coincidencia en resultados
-      if (filteredResults.length === 1) {
-        handleSelectProduct(filteredResults[0]);
-        setSearchQuery("");
-        searchInputRef.current?.focus();
-      }
-    }
+  const handleSelectProduct = (item: CatalogItem, cantidad = 1) => agregar({
+    name: item.descripcion, price: item.precio, quantity: cantidad, codigo: item.codigo, departamento: item.departamento
+  });
+  const cantidadValida = /^\d+$/.test(cantidadBusqueda) && Number.isSafeInteger(Number(cantidadBusqueda)) && Number(cantidadBusqueda) > 0;
+  const seleccionarBusqueda = async (item: CatalogItem) => {
+    if (!cantidadValida) return;
+    if (await handleSelectProduct(item, Number(cantidadBusqueda))) setCantidadBusqueda("1");
   };
-
-  // Barcode scanner fast typing handling
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setSearchQuery(val);
-
-    const raw = val.trim().replace(/^@/, "");
-    // Si el lector escribe rápido puros dígitos de un código exacto
-    if (raw.length >= 8 && /^\d+$/.test(raw)) {
-      const exactMatch = inventory.find((p) => p.codigo === raw);
-      if (exactMatch) {
-        handleSelectProduct(exactMatch);
-        setSearchQuery("");
-        setTimeout(() => searchInputRef.current?.focus(), 10);
-      }
-    }
-  };
-
-  const handleAddManualProduct = (e: React.FormEvent) => {
+  const handleSearchKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== "Enter" || e.repeat || ocupado || !cantidadValida) return;
     e.preventDefault();
-    if (!manualName.trim() || !manualPrice || parseFloat(manualPrice) <= 0) return;
-
-    const price = parseFloat(manualPrice);
-    const qty = parseInt(manualQty) || 1;
-
-    const existingIndex = cart.findIndex((p) => p.name.toLowerCase() === manualName.trim().toLowerCase());
-    if (existingIndex > -1) {
-      const updated = [...cart];
-      updated[existingIndex].quantity += qty;
-      saveCart(updated);
-    } else {
-      const newProduct: Product = {
-        id: Date.now().toString(),
-        name: manualName.trim(),
-        price,
-        quantity: qty,
-        departamento: "Manual"
-      };
-      saveCart([...cart, newProduct]);
+    const codigo = searchQuery.trim().replace(/^@/, "");
+    if (!codigo) return;
+    const exactos = coincidenciasCodigo(inventory, codigo);
+    const item = exactos.length === 1 ? exactos[0] : filteredResults.length === 1 ? filteredResults[0] : undefined;
+    if (item && await handleSelectProduct(item, Number(cantidadBusqueda))) {
+      setSearchQuery(""); setCantidadBusqueda("1"); searchInputRef.current?.focus();
     }
-
-    setManualName("");
-    setManualPrice("");
-    setManualQty("1");
-    searchInputRef.current?.focus();
   };
-
-  const handleIncrement = (id: string) => {
-    const updated = cart.map((item) => {
-      if (item.id === id) {
-        return { ...item, quantity: item.quantity + 1 };
-      }
-      return item;
-    });
-    saveCart(updated);
-  };
-
-  const handleDecrement = (id: string) => {
-    const updated = cart
-      .map((item) => {
-        if (item.id === id) {
-          const nextQty = item.quantity - 1;
-          return nextQty > 0 ? { ...item, quantity: nextQty } : null;
-        }
-        return item;
-      })
-      .filter((item): item is Product => item !== null);
-    saveCart(updated);
-  };
-
-  const handleDeleteItem = (id: string) => {
-    const updated = cart.filter((item) => item.id !== id);
-    saveCart(updated);
-  };
-
-  const handleClearCart = () => {
-    if (confirm("¿Estás seguro de que quieres limpiar el ticket actual?")) {
-      saveCart([]);
-      setCashReceived("");
-      setShowSuccess(false);
-      searchInputRef.current?.focus();
+  const handleAddManualProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualName.trim() || !(leerCentavos(manualPrice) > 0) || !/^\d+$/.test(manualQty)) {
+      setErrorCaja("Introduce un nombre, un precio válido y una cantidad entera."); return;
+    }
+    if (await agregar({name: manualName.trim(), price: leerCentavos(manualPrice) / 100, quantity: Number(manualQty), departamento: "Manual"})) {
+      setManualName(""); setManualPrice(""); setManualQty("1");
     }
   };
 
-  const { total: cartTotal, diferencia: changeAmount, suficiente: isEnoughCash } = calcularCobro(cart, cashReceived);
-
-  const handleFinalizedSale = async () => {
-    if (cart.length === 0 || (cashReceived !== "" && !isEnoughCash)) return;
-
-    const now = new Date();
-    const pad = (n: number) => n.toString().padStart(2, "0");
-    const dateStr = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()}`;
-    const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-
-    let summaryText = `VENTA SIN LUZ\n${dateStr} ${timeStr}\n\n`;
-    cart.forEach((item) => {
-      const itemTot = (item.price * item.quantity).toFixed(2);
-      summaryText += `${item.name} x${item.quantity} $${itemTot}\n`;
-    });
-    summaryText += `\nTOTAL: $${cartTotal.toFixed(2)}`;
-
-    // Guardar historial en localStorage
-    const newSale = {
-      id: Date.now().toString(),
-      fecha: `${dateStr} ${timeStr}`,
-      items: cart,
-      total: cartTotal,
-      efectivo: cashReceived ? parseFloat(cashReceived) : cartTotal,
-      cambio: changeAmount,
-      resumen: summaryText
-    };
-    try {
-      if (!guardarVenta(localStorage, newSale)) {
-        setCart(leerCaja(localStorage).cart);
-        setCheckoutError("El ticket cambió. Revísalo antes de cobrar.");
-        return;
-      }
-    } catch {
-      setCheckoutError("No se pudo registrar el cobro. El ticket sigue activo.");
+  function abrirBuscador(consulta = "") {
+    if (!edicion) setHistorial(false);
+    setBusqueda(true); setSearchQuery(consulta); setCantidadBusqueda("1"); setErrorCaja("");
+  }
+  function abrirPago() {
+    if (!caja || !cart.length || ocupado || conflicto) return;
+    setErrorCaja(""); setCaptura({metodo: "efectivo", efectivo: monto(ticketTotal), cambio: caja.cambio});
+    intento.current = undefined;
+  }
+  function cerrarPago() {
+    setCaptura(undefined); setEdicion(undefined); setErrorCaja(""); intento.current = undefined;
+  }
+  const itemsEditados = edicion?.items.map(({ producto, precio, cantidad }) =>
+    ({ ...producto, price: leerCentavos(precio) / 100, quantity: /^\d+$/.test(cantidad) ? Number(cantidad) : NaN }));
+  const totalPago = itemsEditados ? totalTicket(itemsEditados) : ticketTotal;
+  const calculo = captura && calcularPago(totalPago, captura);
+  const finalizarValido = !!calculo?.suficiente && !conflicto && !ocupado
+    && (!itemsEditados || (itemsEditados.length > 0 && itemsEditados.every(i => Number.isSafeInteger(i.quantity) && i.quantity > 0)));
+  async function guardarCobro() {
+    if (!tienda || !caja || !captura || operando.current || !finalizarValido) return;
+    if (edicion && itemsEditados) {
+      void operar(() => cambiarVenta(tienda, caja.revision, edicion.venta.id, {items: itemsEditados, pago: captura}), datos => {
+        setCaja(datos); cerrarPago(); setUltima(undefined);
+      });
       return;
     }
-
-    setCheckoutError("");
-    setCart([]);
-    setCompletedChange(cashReceived === "" ? null : changeAmount);
-    setCashReceived("");
-    setCopiedNotification(false);
-    setLastCompletedSummary(summaryText);
-    setShowSuccess(true);
-    const version = ++receiptVersion.current;
+    await operar(() => {
+      intento.current ??= { id: crearId(), fecha: new Date().toISOString() };
+      return finalizar(tienda, caja.revision, intento.current.id, captura, intento.current.fecha);
+    }, datos => {
+      const venta = datos.sales.find(v => v.id === intento.current?.id);
+      setCaja(datos); setUltima(venta); setCopiado(false); cerrarPago();
+      copiaActual.current = venta?.id;
+      if (venta) void copiarResumen(venta);
+    });
+  }
+  async function copiarResumen(venta: VentaCaja, manual = false) {
     try {
-      await navigator.clipboard.writeText(summaryText);
-      if (receiptVersion.current === version) setCopiedNotification(true);
-    } catch { /* The sale is registered even without clipboard access. */ }
-  };
+      await navigator.clipboard.writeText(resumenVenta(venta));
+      if (copiaActual.current === venta.id) setCopiado(true);
+    } catch {
+      if (manual) setErrorCaja("No se pudo copiar. Puedes compartir la venta por WhatsApp.");
+    }
+  }
+  function editarVenta(venta: VentaCaja) {
+    const p = venta.pago;
+    setEdicion({ venta, items: venta.items.map(producto => ({
+      producto, precio: String(producto.price), cantidad: String(producto.quantity)
+    })) });
+    setCaptura({ metodo: p.metodo, efectivo: monto(p.efectivo), dolares: monto(p.dolares),
+      tarjeta: monto(p.tarjeta), cambio: monto(p.tasa), folio: p.folio });
+  }
+  function recargar() {
+    if (!tienda || !caja) return;
+    void operar(() => leer(tienda), datos => {
+      if (captura && !edicion && JSON.stringify(caja.cart) !== JSON.stringify(datos.cart)) {
+        cerrarPago(); setErrorCaja("El ticket cambió en otra pestaña. Revísalo antes de abrir el cobro nuevamente.");
+      }
+      if (edicion && JSON.stringify(edicion.venta) !== JSON.stringify(datos.sales.find(v => v.id === edicion.venta.id))) {
+        cerrarPago(); setErrorCaja("La venta cambió en otra pestaña. Revísala antes de volver a editarla.");
+      }
+      setCaja(datos); setConflicto(false);
+    });
+  }
 
-  const handleManualCopy = async () => {
-    const version = receiptVersion.current;
-    try {
-      await navigator.clipboard.writeText(lastCompletedSummary);
-      if (receiptVersion.current === version) setCopiedNotification(true);
-    } catch (err) {}
-  };
+  useEffect(() => {
+    const atajo = (e: KeyboardEvent) => {
+      if (e.repeat || e.altKey || e.ctrlKey || e.metaKey || !tienda || !caja || ocupado ||
+        escaneo || confirmacion || priceLookup !== "closed" || showImportModal || showCatalogModal) return;
+      if (e.key === "F10" && !busqueda && (!captura || edicion) && !conflicto) { e.preventDefault(); abrirBuscador(); }
+      if (e.key === "F12" && !busqueda && !captura && !historial && cart.length && !conflicto) { e.preventDefault(); abrirPago(); }
+      if (e.key === "F2" && captura && !busqueda && !edicion) { e.preventDefault(); void guardarCobro(); }
+    };
+    window.addEventListener("keydown", atajo);
+    return () => window.removeEventListener("keydown", atajo);
+  });
 
   return (
     <div className="labs-cobro max-w-7xl mx-auto px-4 md:px-8 py-8 relative">
@@ -611,7 +567,7 @@ export default function CobroSinLuz() {
         onDetected={code => setPriceLookup({ code, added: false })} />}
       {typeof priceLookup === "object" && (
         <dialog ref={priceDialog} aria-labelledby="price-lookup-title" aria-describedby="price-lookup-result"
-          onCancel={event => { event.preventDefault(); closePriceLookup(); }}
+          onCancel={event => { event.preventDefault(); if (!ocupado) closePriceLookup(); }}
           className="m-auto w-[calc(100%-2rem)] max-w-md rounded-lg border border-neutral-300 bg-white p-5 text-[#141418] backdrop:bg-black/60">
           <h2 id="price-lookup-title" tabIndex={-1} className="text-lg font-bold">Precio del producto</h2>
           <div id="price-lookup-result" className="my-4 break-words">
@@ -621,19 +577,19 @@ export default function CobroSinLuz() {
             </> : <p>{priceMatches.length ? "Este código coincide con más de un producto." : "Producto no encontrado"}</p>}
             <p className="mt-1 text-sm">{priceLookup.code}</p>
           </div>
-          {checkoutError && <p role="alert" className="mb-3 text-sm text-red-800">{checkoutError}</p>}
+          {errorCaja && <p role="alert" className="mb-3 text-sm text-red-800">{errorCaja}</p>}
+          {conflicto && <button type="button" disabled={ocupado} onClick={recargar}>Recargar caja</button>}
           <div className="flex flex-wrap gap-2">
-            {priceProduct && <button type="button" disabled={priceLookup.added}
+            {priceProduct && <button type="button" disabled={priceLookup.added || ocupado || conflicto || !caja}
               className="min-h-11 rounded-lg bg-[#141418] px-3 font-semibold text-white disabled:opacity-60"
-              onClick={() => {
-                if (!priceLookup.added && handleSelectProduct(priceProduct)) setPriceLookup({ ...priceLookup, added: true });
+              onClick={async () => {
+                if (!priceLookup.added && await handleSelectProduct(priceProduct)) setPriceLookup({ ...priceLookup, added: true });
               }}>{priceLookup.added ? "Agregado al ticket" : "Agregar al ticket"}</button>}
-            <button type="button" className="pricing-reset min-h-11" onClick={startPriceLookup}>Escanear otro</button>
-            <button type="button" className="pricing-reset min-h-11" onClick={closePriceLookup}>Cerrar</button>
+            <button type="button" disabled={ocupado} className="pricing-reset min-h-11" onClick={startPriceLookup}>Escanear otro</button>
+            <button type="button" disabled={ocupado} className="pricing-reset min-h-11" onClick={closePriceLookup}>Cerrar</button>
           </div>
         </dialog>
       )}
-      {checkoutError && <p role="alert" className="mb-4 font-semibold text-red-800">{checkoutError}</p>}
       {/* Toast Notification */}
       <AnimatePresence>
         {importNotification && (
@@ -645,85 +601,6 @@ export default function CobroSinLuz() {
           >
             <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
             <span>{importNotification}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* SUCCESS MODAL ON SALE FINISHED */}
-      <AnimatePresence>
-        {showSuccess && (
-          <motion.div
-            key="sale-success"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
-          >
-            <motion.div
-              role="dialog" aria-modal="true" aria-labelledby="sale-success-title" data-sale-dialog tabIndex={-1}
-              initial={{ scale: 0.95, y: 15 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 15 }}
-              className="bg-white border border-[#b5bec6] rounded-lg max-w-md w-full p-6 md:p-8 text-center shadow-2xl font-sans"
-            >
-              <div className="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-7 h-7 text-emerald-600" />
-              </div>
-
-              <h3 id="sale-success-title" className="font-serif text-2xl font-bold text-[#141418] mb-1">Cobro Registrado</h3>
-
-              {copiedNotification && <div role="status" className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-mono font-bold py-2.5 px-4 rounded-xl mb-4 flex items-center justify-center gap-2">
-                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Venta copiada al portapapeles</span>
-              </div>}
-
-              {/* Resumen generado */}
-              <div className="bg-[#edf2fd] border border-[#b5bec6] rounded-xl p-4 text-left font-mono text-xs text-neutral-800 mb-5 whitespace-pre-wrap max-h-48 overflow-y-auto">
-                {lastCompletedSummary}
-              </div>
-
-              {completedChange !== null && (
-                <div className="text-xs font-mono text-[#141418] bg-[#edf2fd] border border-[#b5bec6] p-3 rounded-xl mb-6 flex justify-between items-center px-4">
-                  <span>Su cambio:</span>
-                  <span className="text-emerald-700 font-bold text-base">${completedChange.toFixed(2)}</span>
-                </div>
-              )}
-
-              <div className="flex flex-col gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const url = `https://wa.me/?text=${encodeURIComponent(lastCompletedSummary)}`;
-                    window.open(url, "_blank");
-                  }}
-                  className="w-full bg-[#25D366] hover:bg-[#1fb855] text-white py-3.5 px-6 rounded-xl text-xs uppercase font-mono tracking-wider font-bold transition-colors shadow-sm flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Share2 className="w-4 h-4" />
-                  <span>Compartir por WhatsApp</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleManualCopy}
-                  className="w-full bg-[#edf2fd] hover:bg-neutral-200 text-neutral-700 border border-[#b5bec6] py-3 px-6 rounded-xl text-xs uppercase font-mono tracking-wider font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                  <span>{copiedNotification ? "¡Copiado!" : "Copiar texto"}</span>
-                </button>
-
-                <button
-                  type="button"
-                  data-next-sale
-                  onClick={() => {
-                    setShowSuccess(false);
-                    searchInputRef.current?.focus();
-                  }}
-                  className="w-full bg-[#141418] hover:bg-[#C1121F] text-white py-3.5 px-6 rounded-xl text-xs uppercase font-mono tracking-wider font-bold transition-colors cursor-pointer mt-1"
-                >
-                  Nueva Venta
-                </button>
-              </div>
-            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1152,16 +1029,52 @@ export default function CobroSinLuz() {
         )}
       </AnimatePresence>
 
-      {/* TITLE & DESCRIPTION */}
-      <div className="mb-6 space-y-1">
-        <h1 className="font-serif text-3xl md:text-4xl font-light text-neutral-900 tracking-tight">
-          Cobro sin Luz
-        </h1>
-        <p className="text-[#141418] font-sans font-light text-sm max-w-2xl">
-          Módulo de cobro rápido con escáneres USB / Bluetooth y precios actualizados fuera de línea.
-        </p>
+      <div className="caja-encabezado">
+        <div><h1>Cobro sin luz</h1>{tienda && <p>{tienda}</p>}</div>
+        {tienda && <button type="button" disabled={ocupado} onClick={() => {
+          setTienda(undefined); setCaja(undefined); setUltima(undefined); setConflicto(false); setErrorCaja("");
+        }}>Cambiar sucursal</button>}
       </div>
-
+      {errorCaja && !busqueda && !captura && typeof priceLookup !== "object" && <p role="alert" className="caja-error">{errorCaja}</p>}
+      {!tienda && <section className="caja-columna">
+        <h2>{hayCopia ? "Recuperar la caja anterior" : "Elige tu sucursal"}</h2>
+        {hayCopia && <p>El ticket y las ventas anteriores no tienen sucursal. Se copiarán juntos a la tienda que elijas.</p>}
+        {hayCopia === undefined && (ocupado ? <p role="status">Abriendo almacenamiento…</p> : <button type="button" onClick={revisarLegado}>Reintentar</button>)}
+        {hayCopia !== undefined && <div className="caja-tiendas">
+          {sucursales.map(sucursal => <button type="button" key={sucursal} disabled={ocupado}
+            aria-pressed={hayCopia ? destinoLegado === sucursal : undefined}
+            onClick={() => hayCopia ? setDestinoLegado(sucursal) : abrirTienda(sucursal)}>{sucursal}</button>)}
+        </div>}
+        {hayCopia && <button type="button" className="caja-primario" disabled={ocupado || !destinoLegado}
+          onClick={() => destinoLegado && abrirTienda(destinoLegado, true)}>Recuperar en esta sucursal</button>}
+      </section>}
+      {tienda && caja && <>
+        <div className="caja-acciones caja-vistas" aria-label="Vista de caja">
+          <button type="button" aria-pressed={!historial} onClick={() => setHistorial(false)}>Ticket</button>
+          <button type="button" aria-pressed={historial} onClick={() => setHistorial(true)}>Historial</button>
+          {conflicto && !busqueda && !captura && <button type="button" onClick={recargar} disabled={ocupado}>Recargar caja</button>}
+        </div>
+        {historial ? <HistorialCaja caja={caja} ocupado={ocupado || conflicto}
+          estado={venta => void operar(() => cambiarVenta(tienda, caja.revision, venta.id, {traspasada: !venta.traspasada}), setCaja)}
+          editar={editarVenta} borrar={setConfirmacion} limpiar={() => setConfirmacion("historial")} /> : <>
+          {ultima && <section className="caja-confirmacion">
+            <p role="status"><CheckCircle size={18} /> Venta {numeroVenta(ultima.numero)} registrada. Cambio: {mxn(ultima.pago.cambioMXN)} MXN.</p>
+            <details><summary>Compartir venta</summary><div className="caja-acciones">
+              <button type="button" onClick={() => void copiarResumen(ultima, true)}><Copy size={17} />{copiado ? "Copiado" : "Copiar texto"}</button>
+              <a href={`https://wa.me/?text=${encodeURIComponent(resumenVenta(ultima))}`} target="_blank" rel="noopener noreferrer">
+                <Share2 size={17} /> WhatsApp</a>
+            </div></details>
+          </section>}
+          <section className="caja-columna" aria-label="Ticket actual">
+            <div className="caja-encabezado"><h2>Ticket actual</h2>
+              {!!cart.length && <button type="button" disabled={ocupado || conflicto}
+                onClick={() => setConfirmacion("ticket")}>Limpiar ticket</button>}
+            </div>
+            {cart.length ? <fieldset disabled={ocupado || conflicto}><LineasTicket items={cart} cambiar={items => void saveCart(items)} /></fieldset>
+              : <p className="caja-vacio">No hay productos en el ticket.</p>}
+          </section>
+          <details className="caja-catalogo">
+            <summary>Catálogo y herramientas</summary>
       {/* INVENTORY MANAGEMENT BAR */}
       <div className="bg-[#edf2fd] border border-[#b5bec6] rounded-lg p-4 mb-8 flex flex-wrap items-center justify-between gap-4 shadow-2xs">
         <div className="flex items-center gap-3">
@@ -1245,387 +1158,122 @@ export default function CobroSinLuz() {
           <span className="font-medium">{syncError}</span>
         </div>
       )}
-
-      {/* MAIN CONTENT GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-10 items-start">
-        {/* Left Column: Smart Searcher & Catalog */}
-        <div className="lg:col-span-7 space-y-6">
-          <div className="bg-white border border-[#b5bec6] rounded-lg p-6 md:p-8 shadow-xs">
-            <label className="block text-xs font-mono font-bold tracking-widest text-[#141418] uppercase mb-3 flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <Search className="w-4 h-4 text-[#780000]" />
-                Buscador Inteligente de Productos
-              </span>
-              <span className="text-[10px] text-neutral-400 font-normal normal-case">
-                Lector USB / Bluetooth compatible
-              </span>
-            </label>
-
-            <div className="relative">
-              <input
-                type="text"
-                ref={searchInputRef}
-                value={searchQuery}
-                onChange={handleSearchChange}
-                onKeyDown={handleSearchKeyDown}
-                placeholder="Escanea código o busca por descripción, depto..."
-                className="w-full bg-[#edf2fd] border border-[#b5bec6] focus:border-[#C1121F] focus:bg-white focus:outline-none rounded-lg px-5 py-4 text-base font-sans text-[#141418] placeholder:text-neutral-400 transition-colors shadow-inner"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchQuery("");
-                    searchInputRef.current?.focus();
-                  }}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-mono text-neutral-400 hover:text-neutral-700 bg-neutral-200/60 px-2 py-1 rounded-md"
-                >
-                  ESC
-                </button>
-              )}
+          </details>
+          <section className="caja-barra" aria-label="Captura y cobro">
+            <p className="caja-total"><span>{articulos(cart)}</span><strong>{mxn(ticketTotal)} MXN</strong></p>
+            <div className="caja-metodos caja-comandos">
+              <button type="button" title="Buscar productos" disabled={ocupado || conflicto} onClick={() => abrirBuscador()}><Search size={19} />F10</button>
+              <button type="button" aria-label="Escanear producto" title="Escanear producto" disabled={ocupado || conflicto}
+                onClick={() => { setErrorCaja(""); setEscaneo(true); }}><Barcode size={20} /><span>Escanear</span></button>
+              <button type="button" className="caja-primario" title="Cobrar venta" disabled={ocupado || conflicto || !cart.length}
+                onClick={abrirPago}><ReceiptText size={19} />F12</button>
             </div>
-
-            <div className="mt-4 space-y-3">
-              <div className="flex flex-wrap gap-2" role="group" aria-label="Filtros de productos">
-                {filterOptions.map(({ key, label }) => (
-                  <button type="button" key={key} aria-pressed={searchFilters[key].enabled}
-                    onClick={() => setSearchFilters(prev => ({ ...prev, [key]: { ...prev[key], enabled: !prev[key].enabled } }))}
-                    className={`flex items-center gap-2 border border-[#b5bec6] rounded-lg px-3 py-2 text-xs font-semibold cursor-pointer ${searchFilters[key].enabled ? "bg-[#141418] text-white" : "bg-white text-[#141418]"}`}>
-                    {searchFilters[key].enabled && <Check className="w-4 h-4" />}
-                    {label}
-                  </button>
-                ))}
-                {filterOptions.some(({ key }) => searchFilters[key].enabled) && (
-                  <button type="button" onClick={() => setSearchFilters(prev => Object.fromEntries(Object.entries(prev).map(([key]) => [key, { enabled: false, value: "" }])) as typeof prev)}
-                    className="px-3 py-2 text-xs text-[#141418] underline">Limpiar filtros</button>
-                )}
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {filterOptions.filter(({ key }) => searchFilters[key].enabled).map(({ key, label }) => (
-                  <label key={key} className="text-xs font-semibold text-[#141418]">
-                    {key === "price" && searchFilters.price.value.trim().startsWith("-") ? "Precio máximo (MXN)" : label}
-                    <input type="text" inputMode={key === "price" ? "text" : key === "barcode" ? "numeric" : "text"}
-                      value={searchFilters[key].value}
-                      onChange={e => setSearchFilters(prev => ({ ...prev, [key]: { ...prev[key], value: e.target.value } }))}
-                      className="mt-1 w-full rounded-lg px-3 py-3" />
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Live Search Results List */}
-            <div className="mt-6 border border-[#b5bec6] rounded-lg bg-white overflow-hidden max-h-[440px] overflow-y-auto divide-y divide-[#b5bec6]">
-              {filteredResults.length > 0 ? (
-                filteredResults.map((item) => (
-                  <div
-                    key={item.id}
-                    onClick={() => handleSelectProduct(item)}
-                    className="p-5 hover:bg-[#edf2fd] transition-colors cursor-pointer flex items-center justify-between gap-4 group active:scale-[0.995]"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[10px] font-mono font-bold text-white bg-[#141418] group-hover:bg-[#C1121F] px-2 py-0.5 rounded transition-colors uppercase tracking-wider">
-                          {item.departamento}
-                        </span>
-                        {item.codigo && (
-                          <span className="text-[11px] font-mono text-neutral-400">{item.codigo}</span>
-                        )}
-                      </div>
-                      <p className="text-sm font-sans font-semibold text-neutral-900 truncate group-hover:text-[#780000] transition-colors">
-                        {item.descripcion}
-                      </p>
-                    </div>
-
-                    <div className="text-right flex items-center gap-3">
-                      <span className="text-base font-mono font-bold text-[#b5bec6]">
-                        ${item.precio.toFixed(2)}
-                      </span>
-                      <div className="w-11 h-11 rounded-full bg-[#C1121F] group-hover:bg-[#780000] text-white flex items-center justify-center transition-colors shrink-0">
-                        <Plus className="w-4 h-4" />
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="p-10 text-center text-neutral-400 text-xs font-sans italic">
-                  No se encontraron productos con esta búsqueda y los filtros seleccionados.
-                </div>
-              )}
-            </div>
-
-            <div className="mt-3 text-right">
-              <span className="text-[10px] font-mono text-neutral-400">
-                Mostrando {filteredResults.length} de {inventory.length} productos
-              </span>
-            </div>
-          </div>
-
-          {/* Collapsible Manual Fallback Input */}
-          <div className="bg-[#edf2fd] border border-[#b5bec6] rounded-lg overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setShowManualFallback(!showManualFallback)}
-              className="w-full p-5 flex items-center justify-between text-xs font-mono font-bold text-neutral-600 hover:text-[#141418] transition-colors cursor-pointer"
-            >
-              <span className="flex items-center gap-2">
-                <PlusCircle className="w-4 h-4 text-neutral-500" />
-                ¿Producto fuera de catálogo? Ingreso manual rápido
-              </span>
-              {showManualFallback ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
-
-            <AnimatePresence>
-              {showManualFallback && (
-                <motion.form
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  onSubmit={handleAddManualProduct}
-                  className="p-6 pt-2 space-y-4 border-t border-[#b5bec6] bg-white"
-                >
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-                    <div className="md:col-span-6">
-                      <label className="block text-[10px] tracking-widest uppercase text-neutral-500 font-bold mb-1">
-                        Producto / Concepto
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="Ej. Hielo Extra"
-                        value={manualName}
-                        onChange={(e) => setManualName(e.target.value)}
-                        className="w-full bg-[#edf2fd] border border-[#b5bec6] focus:border-[#C1121F] focus:outline-none rounded-xl px-3.5 py-2.5 text-xs font-sans"
-                      />
-                    </div>
-                    <div className="md:col-span-3">
-                      <label className="block text-[10px] tracking-widest uppercase text-neutral-500 font-bold mb-1">
-                        Precio ($)
-                      </label>
-                      <input
-                        type="number"
-                        required
-                        step="0.01"
-                        min="0"
-                        placeholder="0.00"
-                        value={manualPrice}
-                        onChange={(e) => setManualPrice(e.target.value)}
-                        className="w-full bg-[#edf2fd] border border-[#b5bec6] focus:border-[#C1121F] focus:outline-none rounded-xl px-3.5 py-2.5 text-xs font-mono"
-                      />
-                    </div>
-                    <div className="md:col-span-3">
-                      <label className="block text-[10px] tracking-widest uppercase text-neutral-500 font-bold mb-1">
-                        Ctd.
-                      </label>
-                      <input
-                        type="number"
-                        required
-                        min="1"
-                        value={manualQty}
-                        onChange={(e) => setManualQty(e.target.value)}
-                        className="w-full bg-[#edf2fd] border border-[#b5bec6] focus:border-[#C1121F] focus:outline-none rounded-xl px-3.5 py-2.5 text-xs font-sans"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="w-full bg-[#141418] hover:bg-[#C1121F] text-white py-3 px-4 rounded-xl text-xs uppercase font-mono tracking-widest font-bold transition-colors cursor-pointer"
-                  >
-                    Agregar Manual al Ticket
-                  </button>
-                </motion.form>
-              )}
-            </AnimatePresence>
-          </div>
+          </section>
+        </>}
+      </>}
+      {escaneo && <EscanerCodigo onClose={() => {
+        setEscaneo(false); abrirBuscador();
+      }} onDetected={async codigo => {
+        setEscaneo(false);
+        const candidatos = coincidenciasCodigo<CatalogItem>(inventory, codigo);
+        if (candidatos.length !== 1 || !await handleSelectProduct(candidatos[0])) {
+          setBusqueda(true); setSearchQuery(codigo); setCantidadBusqueda("1");
+          if (!candidatos.length) setShowManualFallback(true);
+        }
+      }} />}
+      {confirmacion && tienda && caja && <DialogoCaja titulo={confirmacion === "historial" ? "¿Limpiar historial?" :
+        confirmacion === "ticket" ? "¿Limpiar el ticket actual?" : `¿Eliminar la venta ${numeroVenta(confirmacion.numero)}?`}
+        ocupado={ocupado} cerrar={() => setConfirmacion(undefined)}>
+        <p>{confirmacion === "historial" ? `Se eliminarán las ventas traspasadas de ${tienda} y se reiniciará la numeración. El ticket actual seguirá intacto.`
+          : "Esta acción no se puede deshacer."}</p>
+        {errorCaja && <p role="alert" className="caja-error">{errorCaja}</p>}
+        <div className="caja-acciones caja-pie">
+          <button autoFocus type="button" disabled={ocupado} onClick={() => setConfirmacion(undefined)}>Cancelar</button>
+          <button type="button" disabled={ocupado || conflicto} onClick={async () => {
+            const resultado = confirmacion === "ticket" ? await saveCart([]) :
+              await operar(() => confirmacion === "historial" ? limpiarHistorial(tienda, caja.revision) :
+                cambiarVenta(tienda, caja.revision, confirmacion.id, null), datos => { setCaja(datos); setUltima(undefined); });
+            if (resultado) setConfirmacion(undefined);
+          }}>Eliminar definitivamente</button>
         </div>
-
-        {/* Right Column: Ticket Details & Checkout */}
-        <div className="lg:col-span-5 space-y-6 sticky top-6">
-          <div className="bg-[#edf2fd] border-2 border-dashed border-[#b5bec6] rounded-lg flex flex-col overflow-hidden shadow-md">
-            <div className="p-5 bg-[#edf2fd] border-b border-[#b5bec6] flex items-center justify-between">
-              <h3 className="font-serif text-base font-light text-neutral-950 flex items-center gap-2.5">
-                <ReceiptText className="w-4 h-4 text-[#b5bec6]" />
-                <span>Ticket Actual</span>
-              </h3>
-              <span className="text-[10px] font-mono font-bold text-white bg-[#141418] px-2.5 py-1 rounded-sm uppercase tracking-wider">
-                {cart.length} Artículos
-              </span>
-            </div>
-
-            {/* Ticket Items List */}
-            <div className="p-6 max-h-[340px] overflow-y-auto space-y-3 divide-y divide-[#edf2fd]">
-              <AnimatePresence initial={false}>
-                {cart.map((item) => (
-                  <motion.div
-                    key={item.id}
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="pt-3 first:pt-0 flex items-center justify-between gap-3 overflow-hidden"
-                  >
-                    <div className="flex-1 min-w-0 pr-1">
-                      <p className="text-xs font-sans font-semibold text-neutral-900 truncate">
-                        {item.name}
-                      </p>
-                      <p className="text-[10px] font-mono text-neutral-500 mt-0.5">
-                        ${item.price.toFixed(2)} c/u
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <div className="flex items-center border border-[#b5bec6] rounded-lg bg-[#edf2fd] p-0.5">
-                        <button
-                          type="button"
-                          onClick={() => handleDecrement(item.id)}
-                          className="p-1 hover:bg-neutral-200 text-neutral-600 rounded transition cursor-pointer"
-                        >
-                          <Minus className="w-3 h-3" />
-                        </button>
-                        <span className="text-xs font-mono font-bold px-2 text-neutral-800 min-w-6 text-center">
-                          {item.quantity}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleIncrement(item.id)}
-                          className="p-1 hover:bg-neutral-200 text-neutral-600 rounded transition cursor-pointer"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
-                      </div>
-
-                      <span className="text-xs font-mono font-bold text-neutral-900 w-16 text-right">
-                        ${(item.price * item.quantity).toFixed(2)}
-                      </span>
-
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteItem(item.id)}
-                        className="p-1 text-neutral-300 hover:text-red-500 transition-colors cursor-pointer"
-                        title="Quitar artículo"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-
-              {cart.length === 0 && (
-                <div className="text-center py-12">
-                  <p className="text-xs text-neutral-400 font-sans italic">El ticket está vacío.</p>
-                  <p className="text-[11px] text-neutral-300 font-sans mt-1.5">
-                    Escanea productos o escríbelos en el buscador para cobrar.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Ticket Totals Summary */}
-            <div className="p-6 bg-[#edf2fd] border-t border-[#b5bec6] space-y-2.5">
-              <div className="flex justify-between text-xs text-neutral-600 font-sans">
-                <span>Subtotal</span>
-                <span className="font-mono">${cartTotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-neutral-950 font-medium border-t border-[#b5bec6] pt-3 text-xl">
-                <span className="font-serif font-light">TOTAL</span>
-                <span className="font-mono text-[#b5bec6] font-bold">${cartTotal.toFixed(2)}</span>
-              </div>
-            </div>
+      </DialogoCaja>}
+      {busqueda && <DialogoCaja titulo="Buscar productos" ocupado={ocupado} cerrar={() => setBusqueda(false)}>
+        <fieldset className="caja-columna" disabled={ocupado || conflicto}>
+          <div className="caja-busqueda">
+            <label>Nombre o código<input ref={searchInputRef} autoFocus autoComplete="off" type="search" value={searchQuery}
+              onKeyDown={handleSearchKeyDown} onChange={e => setSearchQuery(e.target.value)} /></label>
+            <label>Cantidad<input inputMode="numeric" value={cantidadBusqueda} onChange={e => setCantidadBusqueda(e.target.value)} /></label>
           </div>
-
-          {/* Checkout Cash Tender Section */}
-          {cart.length > 0 && (
-            <div className="bg-white border border-[#b5bec6] rounded-lg p-6 md:p-8 space-y-5 shadow-xs">
-              <h3 className="font-serif text-base text-neutral-950 font-light">Pago con Efectivo</h3>
-
-              <div className="space-y-3">
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-sm font-mono text-neutral-400">
-                    $
-                  </span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="Efectivo entregado"
-                    value={cashReceived}
-                    onChange={(e) => setCashReceived(e.target.value)}
-                    className="w-full bg-[#edf2fd] border border-[#b5bec6] focus:border-[#C1121F] focus:bg-white focus:outline-none rounded-xl pl-8 pr-4 py-3.5 text-lg font-mono text-[#141418] font-bold"
-                  />
-                </div>
-
-                <div className="flex flex-wrap gap-1.5">
-                  {[20, 50, 100, 200, 500].map((bill) => (
-                    <button
-                      key={bill}
-                      type="button"
-                      onClick={() => setCashReceived(bill.toString())}
-                      className="flex-1 min-w-[45px] bg-[#edf2fd] hover:bg-[#C1121F] border border-[#b5bec6] hover:border-[#C1121F] hover:text-white text-neutral-700 rounded-lg py-1.5 px-2 text-[11px] font-mono font-bold transition-colors text-center cursor-pointer"
-                    >
-                      ${bill}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => setCashReceived(cartTotal.toString())}
-                    className="flex-1 bg-emerald-50 hover:bg-emerald-600 hover:text-white border border-emerald-200 hover:border-emerald-600 text-emerald-800 rounded-lg py-1.5 px-2 text-[11px] font-mono font-bold transition-colors text-center cursor-pointer"
-                  >
-                    Exacto
-                  </button>
-                </div>
-              </div>
-
-              {cashReceived !== "" && (
-                <div className="bg-neutral-50 border border-[#b5bec6] rounded-lg p-4 flex justify-between items-center">
-                  <div>
-                    <span className="text-[9px] tracking-widest uppercase font-bold text-neutral-500">
-                      {isEnoughCash ? "Su Cambio:" : "Falta Cobrar:"}
-                    </span>
-                    <p className="text-xl font-mono font-bold mt-0.5 text-neutral-950">
-                      ${Math.abs(changeAmount).toFixed(2)}
-                    </p>
-                  </div>
-                  <div>
-                    {isEnoughCash ? (
-                      <span className="text-[9px] uppercase font-bold tracking-widest text-emerald-700 bg-emerald-100/60 border border-emerald-200 rounded px-2.5 py-1">
-                        Liquidado
-                      </span>
-                    ) : (
-                      <span className="text-[9px] uppercase font-bold tracking-widest text-red-700 bg-red-100/60 border border-red-200 rounded px-2.5 py-1">
-                        Incompleto
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <div className="pt-2 flex gap-3">
-                <button
-                  type="button"
-                  onClick={handleClearCart}
-                  className="bg-[#edf2fd] border border-[#b5bec6] hover:bg-red-50 hover:text-red-700 text-[#141418] rounded-xl px-5 py-4 text-xs font-sans font-medium uppercase tracking-wide transition-colors flex items-center justify-center cursor-pointer shrink-0"
-                  title="Limpiar ticket"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleFinalizedSale}
-                  disabled={cart.length === 0 || (cashReceived !== "" && !isEnoughCash)}
-                  className={`flex-1 rounded-xl text-xs uppercase font-mono tracking-widest font-bold text-center py-4 px-6 transition-colors ${
-                    cart.length > 0 && (cashReceived === "" || isEnoughCash)
-                      ? "bg-[#141418] hover:bg-[#C1121F] text-white cursor-pointer shadow-sm active:scale-[0.99]"
-                      : "bg-neutral-100 text-neutral-400 cursor-not-allowed"
-                  }`}
-                >
-                  Cobrar
-                </button>
-              </div>
+          <details className="caja-filtros"><summary>Filtros de búsqueda</summary>
+            <div className="caja-acciones">
+            {filterOptions.map(({key,label}) => <button key={key} type="button" aria-pressed={searchFilters[key].enabled}
+              onClick={() => setSearchFilters(prev => ({...prev,[key]:{...prev[key],enabled:!prev[key].enabled}}))}>{label}</button>)}
             </div>
-          )}
-        </div>
-      </div>
+            <div className="caja-campos">
+            {filterOptions.filter(({key}) => searchFilters[key].enabled).map(({key,label}) => <label key={key}>{label}
+              <input inputMode={key === "barcode" ? "numeric" : "text"} value={searchFilters[key].value}
+                onChange={e => setSearchFilters(prev => ({...prev,[key]:{...prev[key],value:e.target.value}}))} /></label>)}
+            </div>
+          </details>
+          <div className="caja-resultados">
+            {filteredResults.slice(0, 100).map(item => <button type="button" key={item.id} disabled={!cantidadValida}
+              onClick={() => void seleccionarBusqueda(item)}><span>{item.descripcion}<small>{item.codigo} · {item.departamento}</small></span>
+              <strong>{mxn(Math.round(item.precio * 100))}</strong></button>)}
+            {!filteredResults.length && <p>No se encontraron productos.</p>}
+            {filteredResults.length > 100 && <p>100 de {filteredResults.length} productos. Puedes acotar la búsqueda.</p>}
+          </div>
+        </fieldset>
+        <details open={showManualFallback} onToggle={e => setShowManualFallback(e.currentTarget.open)} className="caja-filtros">
+          <summary>Ingreso manual</summary>
+          <form onSubmit={handleAddManualProduct}><fieldset disabled={ocupado || conflicto} className="caja-campos">
+            <label>Producto o concepto<input required value={manualName} onChange={e => setManualName(e.target.value)} /></label>
+            <label>Precio MXN<input required inputMode="decimal" value={manualPrice} onChange={e => setManualPrice(e.target.value)} /></label>
+            <label>Cantidad manual<input inputMode="numeric" required value={manualQty} onChange={e => setManualQty(e.target.value)} /></label>
+            <button type="submit">Agregar manual</button>
+          </fieldset></form>
+        </details>
+        {!cantidadValida && <p className="caja-error">Introduce una cantidad entera mayor a cero.</p>}
+        {errorCaja && <p role="alert" className="caja-error">{errorCaja}</p>}
+        {conflicto && <button type="button" disabled={ocupado} onClick={recargar}>Recargar caja</button>}
+        <p className="caja-total" role="status"><span>{articulos(itemsEditados ?? cart)}</span>
+          <strong>{mxn(edicion ? totalPago : ticketTotal)} MXN</strong></p>
+      </DialogoCaja>}
+      {captura && !busqueda && <DialogoCaja titulo={edicion ? `Editar venta ${numeroVenta(edicion.venta.numero)}` : "Cobrar venta"}
+        ocupado={ocupado} cerrar={cerrarPago}>
+        <form onSubmit={e => { e.preventDefault(); void guardarCobro(); }}>
+          <fieldset className="caja-columna" disabled={ocupado || conflicto}>
+            {edicion && <>
+              {edicion.items.map(({producto, precio, cantidad}, i) => <div className="caja-edicion" key={producto.id}>
+                <b>{producto.name}</b>
+                <div className="caja-campos">
+                  <label>Cantidad<input inputMode="numeric" value={cantidad} onChange={e => {
+                    setEdicion({...edicion,items:edicion.items.map((p,j) => i === j ? {...p,cantidad:e.target.value} : p)});
+                  }} /></label>
+                  <label>Precio unitario<input inputMode="decimal" value={precio} onChange={e => {
+                    setEdicion({...edicion,items:edicion.items.map((p,j) => i === j ? {...p,precio:e.target.value} : p)});
+                  }} /></label>
+                  <button type="button" aria-label={`Quitar ${producto.name}`} onClick={() =>
+                    setEdicion({...edicion, items: edicion.items.filter((_, j) => i !== j)})}><Trash2 size={18} /></button>
+                </div>
+              </div>)}
+              <button type="button" onClick={() => abrirBuscador()}><Plus size={18} /> Agregar producto</button>
+            </>}
+            <FormularioPago total={totalPago} captura={captura} cambiar={valor => {
+              intento.current = undefined; setCaptura(valor); setErrorCaja("");
+            }} editar={!!edicion} guardarTasa={() => {
+              if (tienda && caja) void operar(() => actualizar(tienda, caja.revision, {cambio: captura.cambio}), setCaja);
+            }} />
+          </fieldset>
+          {calculo && !calculo.valido && <p className="caja-error">Revisa los importes y el tipo de cambio.</p>}
+          {errorCaja && <p role="alert" className="caja-error">{errorCaja}</p>}
+          {conflicto && <button type="button" disabled={ocupado} onClick={recargar}>Recargar caja</button>}
+          <div className="caja-acciones caja-pie">
+            <button type="button" disabled={ocupado} onClick={cerrarPago}>Cancelar</button>
+            <button type="submit" title={edicion ? undefined : "Finalizar venta"} className="caja-primario" disabled={!finalizarValido}>
+              <Check size={20} />{edicion ? "Guardar cambios" : "F2"}</button>
+          </div>
+        </form>
+      </DialogoCaja>}
     </div>
   );
 }
